@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Quiz - AI-DaVVA</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root { 
+      --usm-purple:#5a2d81; 
+      --usm-gold:#ffcc00; 
+      --bg-light:#f4f7f6; 
+      --sidebar-width:260px; 
+      --success:#28a745;
+    }
+
+    body{
+      font-family:'Segoe UI',sans-serif;
+      margin:0;
+      background:var(--bg-light);
+      display:flex;
+      transition:.3s
+    }
+
+    .sidebar{
+      width:var(--sidebar-width);
+      background:var(--usm-purple);
+      color:#fff;
+      height:100vh;
+      padding:20px;
+      position:fixed;
+      transition:.3s;
+      z-index:1000;
+      overflow-x:hidden
+    }
+
+    .sidebar.collapsed{
+      width:0;
+      padding:20px 0;
+      left:-260px
+    }
+
+    .logo-area{
+      text-align:center;
+      margin-bottom:30px;
+      padding-bottom:20px;
+      border-bottom:1px solid rgba(255,255,255,.1)
+    }
+
+    .usm-logo{width:80px;margin-bottom:10px}
+
+    .nav-link{
+      color:rgba(255,255,255,.8);
+      text-decoration:none;
+      display:flex;
+      align-items:center;
+      padding:12px 15px;
+      font-size:.95rem;
+      border-radius:8px;
+      margin-bottom:5px;
+      transition:.2s
+    }
+
+    .nav-link i{
+      margin-right:15px;
+      width:20px;
+      text-align:center
+    }
+
+    .nav-link:hover,.nav-link.active{background:rgba(255,255,255,.1);color:#fff}
+
+    .nav-link.active{border-left:4px solid var(--usm-gold);background:rgba(255,255,255,.2)}
+
+    .main-content{
+      margin-left:var(--sidebar-width);
+      padding:40px;
+      width:100%;
+      transition:.3s
+    }
+
+    .main-content.expanded{margin-left:0}
+
+    #toggle-btn{
+      background:#fff;
+      border:1px solid #ddd;
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+      color:var(--usm-purple);
+      font-size:1.2rem;
+      margin-right:20px
+    }
+
+    .page-container{max-width:1000px;margin:auto}
+
+    .card{
+      background:#fff;
+      padding:2rem;
+      border-radius:12px;
+      box-shadow:0 4px 6px rgba(0,0,0,.02);
+      margin-bottom:20px;
+      border-top:4px solid var(--usm-purple)
+    }
+
+    .item{
+      background:#f9f9f9;
+      padding:16px;
+      border-radius:12px;
+      border-left:4px solid var(--usm-gold);
+      margin:12px 0
+    }
+
+    .pill{
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:.8rem;
+      background:#e6f4ea;color:var(--success)
+    }
+
+    .btn{
+      background:var(--usm-purple);
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800
+    }
+
+    .btn:hover{background:#482468}
+   
+    .pill{
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:.8rem
+    }
+
+    .ok{background:#e6f4ea;color:#28a745}
+    
+    .bad{background:#fdecea;color:#dc3545}
+  
+  </style>
+</head>
+
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+      <h4 style="margin-top:10px;font-size:1.2rem;color:var(--usm-gold);">AI-DaVVA</h4>
+    </div>
+    <nav>
+        <a href="{{ url_for('student_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="{{ url_for('student_assignments') }}" class="nav-link"><i class="fas fa-book-open"></i> My Assignments</a>
+        <a href="{{ url_for('student_quiz_list') }}" class="nav-link active"><i class="fas fa-pen-nib"></i> Quiz Center</a>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+        <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+
+  <div class="main-content" id="main-content">
+    <div style="display:flex;align-items:center;margin-bottom:20px;">
+      <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div>
+        <h1 style="margin:0;color:#333;">Quiz Review</h1>
+        <p style="margin:6px 0 0;color:#666;"><b>{{ quiz.title }}</b></p>
+      </div>
+    </div>
+
+    <div class="page-container">
+      <div class="card">
+        <h3 style="margin-top:0;color:var(--usm-purple);">Your Result</h3>
+        <p style="font-size:1.1rem;margin:8px 0;">
+          <span class="pill">{{ attempt.score }}/{{ attempt.total }} ({{ attempt.percent }}%)</span>
+        </p>
+        <p style="color:#777;margin:8px 0 0;">
+          Submitted: {{ attempt.submitted_at.strftime("%d %b %Y %H:%M") }}
+        </p>
+        <a href="{{ url_for('student_quiz_list') }}">
+          <button class="btn" style="margin-top:12px;"><i class="fas fa-list"></i> Back to Quizzes</button>
+        </a>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Correct Answers & Explanations</h3>
+        {% for r in results %}
+        <div class="item">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+            <p style="margin:0; font-weight:800;">Q{{ loop.index }}. {{ r.question_text }}</p>
+            {% if r.is_correct %}
+            <span class="pill ok">Correct</span>
+            {% else %}
+            <span class="pill bad">Wrong</span>
+            {% endif %}
+        </div>
+
+        <p style="margin:10px 0 0;"><b>Your answer:</b> {{ r.chosen if r.chosen else "No answer" }}</p>
+        <p style="margin:6px 0 0;"><b>Correct answer:</b> {{ r.correct }}</p>
+
+        {% if r.explanation %}
+            <p style="margin:10px 0 0;color:#555;"><b>Explanation:</b> {{ r.explanation }}</p>
+        {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar(){
+      const sidebar=document.getElementById('sidebar');
+      const main=document.getElementById('main-content');
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('expanded');
+    }
+  </script>
+</body>
+</html>

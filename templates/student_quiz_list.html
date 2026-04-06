@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Quizzes - AI-DaVVA</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --usm-purple:#5a2d81; 
+      --usm-gold:#ffcc00; 
+      --bg-light:#f4f7f6;
+      --sidebar-width:260px; 
+      --danger:#dc3545; 
+      --success:#28a745;
+    }
+    
+    body{
+      font-family:'Segoe UI',sans-serif;
+      margin:0;
+      background:var(--bg-light);
+      display:flex;
+      transition:.3s
+    }
+
+    .sidebar{
+      width:var(--sidebar-width);
+      background:var(--usm-purple);
+      color:#fff;
+      height:100vh;
+      padding:20px;
+      position:fixed;
+      transition:.3s;
+      z-index:1000;
+      overflow-x:hidden
+    }
+
+    .sidebar.collapsed{
+      width:0;
+      padding:20px 0;
+      left:-260px
+    }
+
+    .logo-area{
+      text-align:center;
+      margin-bottom:30px;
+      padding-bottom:20px;
+      border-bottom:1px solid rgba(255,255,255,.1)
+    }
+
+    .usm-logo{width:80px;margin-bottom:10px}
+
+    .nav-link{
+      color:rgba(255,255,255,.8);
+      text-decoration:none;
+      display:flex;
+      align-items:center;
+      padding:12px 15px;
+      font-size:.95rem;
+      border-radius:8px;
+      margin-bottom:5px;
+      transition:.2s
+    }
+    
+    .nav-link i{
+      margin-right:15px;
+      width:20px;
+      text-align:center;
+    }
+    
+    .nav-link:hover{
+      background:rgba(255,255,255,.1);
+      color:#fff;
+    }
+
+    .nav-link.active{
+      border-left:4px solid var(--usm-gold);
+      background:rgba(255,255,255,.2);
+    }
+
+    .main-content{
+      margin-left:var(--sidebar-width);
+      padding:40px;
+      width:100%;
+      transition:.3s
+    }
+
+    .main-content.expanded{margin-left:0}
+
+    #toggle-btn{
+      background:#fff;
+      border:1px solid #ddd;
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+      color:var(--usm-purple);
+      font-size:1.2rem;
+      margin-right:20px
+    }
+
+    #toggle-btn:hover{background:#eee}
+
+    .page-container{max-width:1000px;margin:auto}
+
+    .card{
+      background:#fff;
+      padding:2rem;
+      border-radius:12px;
+      box-shadow:0 4px 6px rgba(0,0,0,.02);
+      margin-bottom:30px;
+      border-top:4px solid var(--usm-purple)
+    }
+
+    table{width:100%;border-collapse:collapse}
+
+    th{
+      text-align:left;
+      padding:15px;
+      border-bottom:2px solid #eee;
+      font-size:.8rem;
+      color:#777;
+      text-transform:uppercase
+    }
+
+    td{padding:15px;border-bottom:1px solid #f9f9f9}
+
+    .tag{
+      display:inline-block;
+      padding:4px 10px;
+      margin:3px 6px 3px 0;
+      border-radius:999px;
+      background:#f1e9fb;
+      color:var(--usm-purple);
+      font-size:.78rem;
+      font-weight:600
+    }
+
+    .btn-start{
+      background:var(--usm-purple);
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700
+    }
+
+    .btn-start:hover{background:#482468}
+
+    .empty-state{
+      text-align:center;
+      padding:30px;
+      color:#999
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+      <h4 style="margin-top:10px;font-size:1.2rem;color:var(--usm-gold);">AI-DaVVA</h4>
+    </div>
+    <nav>
+        <a href="{{ url_for('student_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="{{ url_for('student_assignments') }}" class="nav-link"><i class="fas fa-book-open"></i> My Assignments</a>
+        <a href="{{ url_for('student_quiz_list') }}" class="nav-link active"><i class="fas fa-pen-nib"></i> Quiz Center</a>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+        <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+
+  <div class="main-content" id="main-content">
+    <div style="display:flex;align-items:center;margin-bottom:30px;">
+      <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div>
+        <h1 style="margin:0;color:#333;">Available Quizzes</h1>
+        <p style="margin:6px 0 0;color:#666;">Only published quizzes are shown here.</p>
+      </div>
+    </div>
+
+    <div class="page-container">
+      <div class="card">
+        <h3 style="margin-top:0;">Published Quizzes ({{ quizzes|length }})</h3>
+
+        {% if quizzes %}
+        <table>
+          <thead>
+            <tr>
+              <th>Quiz</th>
+              <th>Concepts</th>
+              <th>Total Questions</th>
+              <th style="text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for quiz in quizzes %}
+            <tr>
+                <td><b>{{ quiz.title }}</b></td>
+
+                <td><b style="color:var(--usm-purple);">{{ quiz.question_count }}</b></td>
+
+                <td>
+                {% if quiz.my_attempt %}
+                    <span class="status-pill active">
+                    {{ quiz.my_attempt.score }}/{{ quiz.my_attempt.total }} ({{ quiz.my_attempt.percent }}%)
+                    </span>
+                    <div style="font-size:0.8rem;color:#999;margin-top:6px;">
+                    Submitted: {{ quiz.my_attempt.submitted_at.strftime("%d %b %Y %H:%M") }}
+                    </div>
+                {% else %}
+                    <span class="status-pill pending">Not Attempted</span>
+                {% endif %}
+                </td>
+
+                <td style="text-align:right;">
+                {% if quiz.my_attempt %}
+                    <a href="{{ url_for('student_review_quiz', quiz_id=quiz.quiz_id) }}">
+                    <button class="btn-start"><i class="fas fa-eye"></i> Review</button>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('student_take_quiz', quiz_id=quiz.quiz_id) }}">
+                    <button class="btn-start"><i class="fas fa-play"></i> Start</button>
+                    </a>
+                {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+          <div class="empty-state">
+            <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:12px;color:#bbb;"></i>
+            <p style="margin:0;">No published quizzes yet. Please check again later.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar(){
+      const sidebar=document.getElementById('sidebar');
+      const main=document.getElementById('main-content');
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('expanded');
+    }
+  </script>
+</body>
+</html>

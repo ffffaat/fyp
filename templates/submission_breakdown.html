@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submission Breakdown - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --usm-purple: #5a2d81;
+            --usm-gold: #ffcc00;
+            --bg-light: #f4f7f6;
+            --success: #28a745;
+            --warning: #b05a00;
+            --danger: #dc3545;
+            --muted: #6c757d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: var(--bg-light);
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .back-link {
+            color: var(--usm-purple);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border-top: 4px solid var(--usm-purple);
+            margin-bottom: 20px;
+        }
+
+        .top-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .summary-box {
+            background: #faf8fd;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--usm-purple);
+        }
+
+        .status-release {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .status-pending {
+            color: var(--warning);
+            font-weight: 700;
+        }
+
+        .btn-link {
+            color: var(--usm-purple);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .criterion-card {
+            background: white;
+            border: 1px solid #ececec;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        .criterion-header {
+            background: #faf8fd;
+            padding: 16px 18px;
+            border-bottom: 1px solid #ececec;
+        }
+
+        .criterion-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .criterion-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--usm-purple);
+            margin: 0;
+        }
+
+        .criterion-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .meta-pill {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .criterion-body {
+            padding: 18px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric-box {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #eee;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .feedback-box {
+            background: #fffdf7;
+            border: 1px solid #f1e2b8;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .feedback-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #856404;
+        }
+
+        .chunk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .chunk-box {
+            background: #fcfcfc;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .chunk-title {
+            margin: 0 0 10px;
+            color: var(--usm-purple);
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .chunk-text {
+            font-size: 0.92rem;
+            color: #444;
+            white-space: pre-wrap;
+            line-height: 1.55;
+            max-height: 360px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        textarea.form-control {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .btn {
+            background: var(--usm-purple);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            background: #482468;
+        }
+
+        .btn-secondary {
+            background: var(--muted);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .empty-note {
+            color: #777;
+            font-style: italic;
+        }
+
+        @media (max-width: 960px) {
+            .top-grid,
+            .chunk-grid,
+            .metric-grid,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 20px;
+            }
+
+            .card,
+            .criterion-body,
+            .criterion-header {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="{{ url_for('view_submissions', assignment_id=assignment.assignment_id) }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Submissions
+    </a>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="card" style="padding: 14px 18px; border-top: 4px solid #17a2b8;">
+            <i class="fas fa-info-circle"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="top-grid">
+        <div class="card">
+            <h2 style="margin-top:0; margin-bottom:14px;">AI Marking Breakdown</h2>
+            <p><b>Student:</b> {{ submission.student.name }}</p>
+            <p><b>Matrix No.:</b> {{ submission.student.matrix_no }}</p>
+            <p><b>Assignment:</b> {{ assignment.title }}</p>
+            <p>
+                <a href="{{ url_for('static', filename=submission.file_path) }}" target="_blank" class="btn-link">
+                    <i class="fas fa-file-pdf"></i> View Submitted PDF
+                </a>
+            </p>
+
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <div class="summary-label">AI Score</div>
+                    <div class="summary-value">
+                        {{ submission.ai_total_score if submission.ai_total_score is not none else "N/A" }}%
+                    </div>
+                </div>
+
+                <div class="summary-box">
+                    <div class="summary-label">Lecturer Final Score</div>
+                    <div class="summary-value">
+                        {{ submission.lecturer_final_score if submission.lecturer_final_score is not none else "N/A" }}%
+                    </div>
+                </div>
+
+                <div class="summary-box">
+                    <div class="summary-label">Release Status</div>
+                    <div class="summary-value" style="font-size:1rem;">
+                        {% if submission.is_mark_released %}
+                            <span class="status-release"><i class="fas fa-check-circle"></i> Released</span>
+                        {% else %}
+                            <span class="status-pending"><i class="fas fa-clock"></i> Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Lecturer Endorsement</h3>
+            <form method="POST">
+                <div style="margin-bottom:15px;">
+                    <label><b>Final Score (%)</b></label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        name="lecturer_final_score"
+                        class="form-control"
+                        value="{{ submission.lecturer_final_score if submission.lecturer_final_score is not none else submission.ai_total_score if submission.ai_total_score is not none else '' }}"
+                    >
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label><b>Lecturer Feedback</b></label>
+                    <textarea name="lecturer_feedback" class="form-control">{{ submission.lecturer_feedback or "" }}</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" name="action" value="save" class="btn-secondary">
+                        <i class="fas fa-save"></i> Save Review
+                    </button>
+
+                    <button type="submit" name="action" value="endorse" class="btn">
+                        <i class="fas fa-check-circle"></i> Endorse & Release
+                    </button>
+
+                    {% if submission.is_mark_released %}
+                    <button type="submit" name="action" value="unrelease" class="btn-warning">
+                        <i class="fas fa-eye-slash"></i> Hide Mark
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; margin-bottom:16px;">Criterion Breakdown</h3>
+
+        {% if scores %}
+            {% for s in scores %}
+            <div class="criterion-card">
+                <div class="criterion-header">
+                    <div class="criterion-title-row">
+                        <div>
+                            <h4 class="criterion-title">{{ s.criterion_name }}</h4>
+                            <div style="margin-top:6px; color:#666; font-size:0.9rem;">
+                                {{ s.section_name or "Retrieved semantic chunks" }}
+                            </div>
+                        </div>
+
+                        <div class="criterion-meta">
+                            <span class="meta-pill">Weight: {{ s.weight }}</span>
+                            <span class="meta-pill">Raw: {{ "%.2f"|format(s.raw_score or 0) }}/{{ "%.2f"|format(s.max_scale or 0) }}</span>
+                            <span class="meta-pill">Weighted: {{ "%.2f"|format(s.weighted_score or 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="criterion-body">
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Semantic Similarity</div>
+                            <div class="metric-value">{{ "%.2f"|format(s.semantic_similarity or 0) }}</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-label">Keyword Coverage</div>
+                            <div class="metric-value">{{ "%.2f"|format(s.keyword_coverage or 0) }}</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-label">Structure Score</div>
+                            <div class="metric-value">{{ "%.2f"|format(s.structure_score or 0) }}</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-label">Criterion Result</div>
+                            <div class="metric-value">{{ "%.2f"|format(s.raw_score or 0) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-box">
+                        <div class="feedback-title">
+                            <i class="fas fa-comment-dots"></i> AI Feedback
+                        </div>
+                        <div>{{ s.feedback }}</div>
+                    </div>
+
+                    <div class="chunk-grid">
+                        <div class="chunk-box">
+                            <h5 class="chunk-title">
+                                <i class="fas fa-book"></i> Retrieved Model Answer Chunk
+                            </h5>
+                            <div class="chunk-text">
+                                {{ s.model_chunk_text or "No model chunk stored." }}
+                            </div>
+                        </div>
+
+                        <div class="chunk-box">
+                            <h5 class="chunk-title">
+                                <i class="fas fa-user-graduate"></i> Retrieved Student Chunk
+                            </h5>
+                            <div class="chunk-text">
+                                {{ s.student_chunk_text or "No student chunk stored." }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty-note">No AI breakdown available yet. Please evaluate the submission first.</p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

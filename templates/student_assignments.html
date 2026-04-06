@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Assignments - AI-DaVVA</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --usm-purple:#5a2d81;
+      --usm-gold:#ffcc00; 
+      --bg-light:#f4f7f6;
+      --sidebar-width:260px;
+      --success:#28a745;
+      --danger:#dc3545;
+    }
+
+    body{
+      font-family:'Segoe UI',sans-serif;
+      margin:0;
+      background:var(--bg-light);
+      display:flex;
+      transition:.3s
+    }
+
+    .sidebar{
+      width:var(--sidebar-width);
+      background:var(--usm-purple);
+      color:#fff;
+      height:100vh;
+      padding:20px;
+      position:fixed;
+      transition:.3s;
+      z-index:1000;
+      overflow-x:hidden
+    }
+
+    .sidebar.collapsed{
+      width:0;
+      padding:20px 0;
+      left:-260px
+    }
+
+    .logo-area{
+      text-align:center;
+      margin-bottom:30px;
+      padding-bottom:20px;
+      border-bottom:1px solid rgba(255,255,255,.1)
+    }
+
+    .usm-logo{width:80px;margin-bottom:10px}
+
+    .nav-link{
+      color:rgba(255,255,255,.8);
+      text-decoration:none;
+      display:flex;
+      align-items:center;
+      padding:12px 15px;
+      font-size:.95rem;
+      border-radius:8px;
+      margin-bottom:5px;
+      transition:.2s
+    }
+
+    .nav-link i{
+      margin-right:15px;
+      width:20px;
+      text-align:center
+    }
+
+    .nav-link:hover,.nav-link.active{
+      background:rgba(255,255,255,.1);
+      color:#fff
+    }
+
+    .nav-link.active{
+      border-left:4px solid var(--usm-gold);
+      background:rgba(255,255,255,.2)
+    }
+
+    .main-content{
+      margin-left:var(--sidebar-width);
+      padding:40px;
+      width:100%;
+      transition:.3s
+    }
+
+    .main-content.expanded{margin-left:0}
+
+    #toggle-btn{
+      background:#fff;
+      border:1px solid #ddd;
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+      color:var(--usm-purple);
+      font-size:1.2rem;
+      margin-right:20px
+    }
+
+    #toggle-btn:hover{background:#eee}
+
+    .page-container{max-width:1000px;margin:auto}
+
+    .card{
+      background:#fff;
+      padding:2rem;
+      border-radius:12px;
+      box-shadow:0 4px 6px rgba(0,0,0,.02);
+      margin-bottom:20px;
+      border-top:4px solid var(--usm-purple)
+    }
+
+    .assignment-box{
+      background:#f9f9f9;
+      padding:18px;
+      border-radius:12px;
+      border-left:4px solid var(--usm-purple);
+      margin:15px 0
+    }
+
+    .btn{
+      background:var(--usm-purple);
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700
+    }
+
+    .btn:hover{background:#482468}
+
+    .btn-link{
+      color:var(--usm-purple);
+      text-decoration:none;
+      font-weight:600;
+      margin-right:12px;
+    }
+
+    .status-pill{
+      padding:5px 12px;
+      border-radius:20px;
+      font-size:1rem;
+      font-weight:bold;
+      display:inline-block;
+      margin-top:8px;
+    }
+
+    .status-pill.active{
+      background:#e6f4ea;
+      color:var(--success);
+    }
+
+    .status-pill.pending{
+      background:#fff4e5;
+      color:#b05a00;
+    }
+
+    .status-pill.late{
+      background:#fdecea;
+      color:var(--danger);
+    }
+
+    .upload-area{
+      border:2px dashed #ddd;
+      padding:20px;
+      text-align:center;
+      border-radius:12px;
+      background:#fafafa;
+      margin-top:15px;
+    }
+
+    .empty-state{
+      text-align:center;
+      padding:30px;
+      color:#999
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+      <h4 style="margin-top:10px;font-size:1.2rem;color:var(--usm-gold);">AI-DaVVA</h4>
+    </div>
+    <nav>
+      <a href="{{ url_for('student_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="{{ url_for('student_assignments') }}" class="nav-link active"><i class="fas fa-book-open"></i> My Assignments</a>
+      <a href="{{ url_for('student_quiz_list') }}" class="nav-link"><i class="fas fa-pen-nib"></i> Quiz Center</a>
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+      <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+
+  <div class="main-content" id="main-content">
+    <div style="display:flex;align-items:center;margin-bottom:30px;">
+      <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div>
+        <h1 style="margin:0;color:#333;">My Assignments</h1>
+        <p style="margin:6px 0 0;color:#666;">View assignment details and upload your submission.</p>
+      </div>
+    </div>
+
+    <div class="page-container">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for message in messages %}
+            <div style="padding: 15px; background: #e1f5fe; color: #01579b; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+              <i class="fas fa-info-circle"></i> {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if assignments %}
+        {% for assignment in assignments %}
+        <div class="card">
+          <div class="assignment-box">
+            <h3 style="margin-top:0; color:var(--usm-purple);">{{ assignment.title }}</h3>
+
+            <p style="margin:10px 0;">
+              <b>Instruction:</b><br>
+              {{ assignment.instruction or "No instructions provided." }}
+            </p>
+
+            <p style="margin:10px 0;">
+              <b>Due Date:</b>
+              {{ assignment.due_date.strftime("%d %b %Y, %I:%M %p") if assignment.due_date else "No due date" }}
+            </p>
+
+            <div style="margin:12px 0;">
+              {% if assignment.rubric_path %}
+                <a href="{{ url_for('static', filename=assignment.rubric_path) }}" target="_blank" class="btn-link">
+                  <i class="fas fa-file-pdf"></i> View Rubric
+                </a>
+              {% endif %}
+            </div>
+
+            {% set submission = submission_map.get(assignment.assignment_id) %}
+
+            {% if submission %}
+              <span class="status-pill active">Submitted</span>
+              <div style="margin-top:10px; font-size:0.9rem; color:#666;">
+                Submitted at: {{ submission.submitted_at.strftime("%d %b %Y, %I:%M %p") }}
+              </div>
+              <div style="margin-top:10px;">
+                <a href="{{ url_for('static', filename=submission.file_path) }}" target="_blank" class="btn-link">
+                  <i class="fas fa-eye"></i> View Submission
+                </a>
+              </div>
+            {% else %}
+              <span class="status-pill pending">Not Submitted</span>
+            {% endif %}
+            {% if submission and submission.is_mark_released %}
+                <div style="margin-top:10px;">
+                <p style="margin:0;">
+                    <b style="color: var(--danger); font-size:1.1rem;">
+                        Final Mark: 
+                        {{ submission.lecturer_final_score if submission.lecturer_final_score is not none else submission.ai_total_score }}%
+                    </b>
+                </p>
+
+                {% if submission.lecturer_feedback %}
+                    <div style="margin-top:8px; font-size:0.9rem;">
+                        <b>Lecturer Feedback:</b><br>
+                        <span style="color:#444;">{{ submission.lecturer_feedback }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="margin-top:10px; color:#b05a00; font-size:0.9rem;">
+                <i class="fas fa-clock"></i> Mark pending
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('student_assignments') }}" method="POST" enctype="multipart/form-data" style="margin-top:18px;">
+              <input type="hidden" name="assignment_id" value="{{ assignment.assignment_id }}">
+
+              <div class="upload-area">
+                <i class="fas fa-upload" style="font-size: 1.8rem; color: #ccc; margin-bottom:10px;"></i><br>
+                <input type="file" name="submission_file" accept=".pdf" required>
+              </div>
+
+              <div style="margin-top:15px;">
+                <button type="submit" class="btn">
+                  {% if submission %}
+                    <i class="fas fa-sync-alt"></i> Update Submission
+                  {% else %}
+                    <i class="fas fa-paper-plane"></i> Submit Assignment
+                  {% endif %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card">
+          <div class="empty-state">
+            <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:12px;color:#bbb;"></i>
+            <p style="margin:0;">No assignments available yet.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar(){
+      const sidebar=document.getElementById('sidebar');
+      const main=document.getElementById('main-content');
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('expanded');
+    }
+  </script>
+</body>
+</html>

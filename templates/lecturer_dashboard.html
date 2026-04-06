@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecturer Dashboard - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --usm-purple: #5a2d81; 
+            --usm-gold: #ffcc00;
+            --bg-light: #f4f7f6; 
+            --sidebar-width: 260px;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-light); 
+            display: flex;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar { 
+            width: var(--sidebar-width); 
+            background: var(--usm-purple); 
+            color: white; 
+            height: 100vh; 
+            padding: 20px; 
+            position: fixed; 
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding: 20px 0;
+            left: -260px;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .usm-logo {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        .nav-link { 
+            color: rgba(255,255,255,0.8); 
+            text-decoration: none; 
+            display: flex; 
+            align-items: center;
+            padding: 12px 15px; 
+            font-size: 0.95rem; 
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+        .nav-link i { 
+            margin-right: 15px; 
+            width: 20px; 
+            text-align: center; 
+        }
+
+        .nav-link.active { border-left: 4px solid var(--usm-gold); background: rgba(255,255,255,0.2); }
+       
+        .nav-link:hover { background: rgba(255,255,255,0.1); color: white;}
+
+        .main-content { 
+            margin-left: var(--sidebar-width); 
+            padding: 40px; 
+            width: 100%; 
+            transition: all 0.3s ease;
+        }
+
+        .main-content.expanded {margin-left: 0;}
+
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+        }
+
+        #toggle-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--usm-purple);
+            font-size: 1.2rem;
+            margin-right: 20px;
+        }
+
+        #toggle-btn:hover { background: #eee; }
+
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+            gap: 25px; }
+        
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            border-top: 4px solid var(--usm-purple);
+        }
+        
+        .card h3 { 
+            margin: 0; 
+            color: #777; 
+            font-size: 0.85rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+
+        .card p { 
+            margin: 15px 0 0; 
+            font-size: 2.2rem; 
+            font-weight: bold; 
+            color: var(--usm-purple); 
+        }
+
+        .performance-box {
+            margin-top: 40px; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        hr { 
+            border: 0; 
+            border-top: 1px solid rgba(255,255,255,0.1); 
+            margin: 20px 0; 
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+            <h4 style="margin-top: 10px; font-size: 1.2rem; color: var(--usm-gold);">AI-DaVVA</h4>
+        </div>
+        
+        <nav>
+            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link active"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{{ url_for('enroll_students') }}" class="nav-link"><i class="fas fa-user-plus"></i> Student Enrollment</a>
+            <a href="{{ url_for('assignment_management') }}" class="nav-link"><i class="fas fa-file-invoice"></i> Assignment Management</a>
+            <a href="{{ url_for('quiz_management') }}" class="nav-link"><i class="fas fa-tasks"></i> Quiz Management</a>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div class="header">
+            <div style="display: flex; align-items: center;">
+                <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1 style="margin: 0; color: #333;">Welcome, Dr. {{ name }}</h1>
+            </div>
+            <span style="color: #666; font-weight: 500;">Session 2025/2026</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="card">
+        <h3>Class Enrollment</h3>
+        <p>
+            <span style="color: #28a745;">{{ active_count }}</span> 
+            <span style="color: #ccc; font-weight: 300;">/</span> 
+            {{ total_count }}
+        </p>
+        <small style="color: #888; font-size: 0.75rem;">Active Students</small>
+    </div>
+            <div class="card">
+                <h3>Assignments Pending</h3>
+                <p>-</p>
+            </div>
+            <div class="card">
+                <h3>Avg. Quiz Score</h3>
+                <p>-</p>
+            </div>
+        </div>
+        <div class="performance-box">
+            <h3 style="color: var(--usm-purple);"><i class="fas fa-chart-line"></i> Class Assignment Performance Trends</h3>
+        </div>
+        <div class="performance-box">
+            <h3 style="color: var(--usm-purple);"><i class="fas fa-chart-line"></i> Class Quiz Performance Trends</h3>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

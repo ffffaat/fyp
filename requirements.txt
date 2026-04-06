@@ -1,0 +1,12 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+psycopg2-binary
+pypdf
+transformers
+torch
+scikit-learn
+sentencepiece
+sense2vec
+spacy
+sentence-transformers

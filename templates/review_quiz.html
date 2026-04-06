@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review AI Quiz - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { 
+            --usm-purple: #5a2d81; 
+            --usm-gold: #ffcc00; 
+            --bg-light: #f4f7f6; 
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-light); 
+            margin: 0; 
+            padding: 40px; 
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            border-top: 5px solid var(--usm-purple); 
+        }
+
+        .question-item { 
+            background: #f9f9f9; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+            border-left: 4px solid var(--usm-gold); 
+        }
+
+        .btn-publish { 
+            background: var(--usm-purple); 
+            color: white; 
+            padding: 12px 25px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        .back-link { 
+            text-decoration: none; 
+            color: var(--usm-purple); 
+            margin-bottom: 20px; 
+            display: inline-block; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('quiz_management') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Management
+        </a>
+
+        <div class="card">
+            <h1><i class="fas fa-robot"></i> Review AI-Generated Quiz</h1>
+            <p><b>Quiz Title:</b> {{ quiz.title }}</p>
+            <hr>
+
+            <!-- ONE form for saving all edits -->
+            <form action="{{ url_for('save_quiz_review', quiz_id=quiz.quiz_id) }}" method="POST">
+                <h3>Generated Questions:</h3>
+
+                {% for q in quiz.questions %}
+                <div class="question-item">
+                    <p><strong>Question {{ loop.index }}:</strong></p>
+
+                    <label>Question Text</label>
+                    <input type="text"
+                           name="question_text_{{ q.question_id }}"
+                           value="{{ q.question_text }}"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+
+                    <label>Correct Answer</label>
+                    <input type="text"
+                           name="correct_answer_{{ q.question_id }}"
+                           value="{{ q.correct_answer }}"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+
+                    <label>Distractor 1</label>
+                    <input type="text"
+                           name="distractor_1_{{ q.question_id }}"
+                           value="{{ q.distractor_1 }}"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+
+                    <label>Distractor 2</label>
+                    <input type="text"
+                           name="distractor_2_{{ q.question_id }}"
+                           value="{{ q.distractor_2 }}"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+
+                    <label>Distractor 3</label>
+                    <input type="text"
+                           name="distractor_3_{{ q.question_id }}"
+                           value="{{ q.distractor_3 }}"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+
+                    <label>Explanation (optional)</label>
+                    <textarea name="explanation_{{ q.question_id }}"
+                              style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;"
+                              rows="3">{{ q.explanation or "" }}</textarea>
+
+                    <!-- Delete button WITHOUT nested form -->
+                    <div style="display:flex; justify-content:flex-end; gap:12px;">
+                        <button type="submit"
+                                formaction="{{ url_for('delete_question', quiz_id=quiz.quiz_id, question_id=q.question_id) }}"
+                                formmethod="POST"
+                                onclick="return confirm('Delete this question?');"
+                                style="background:#dc3545;color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div style="display:flex; justify-content:flex-end; gap:12px; margin-top: 20px;">
+                    <button type="submit"
+                            style="background:#6c757d;color:white;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:bold;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+
+            <!-- Separate form for publishing (valid HTML) -->
+            <div style="text-align: right; margin-top: 18px;">
+                <form action="{{ url_for('publish_quiz', quiz_id=quiz.quiz_id) }}" method="POST">
+                    <button type="submit" class="btn-publish">
+                        <i class="fas fa-check-circle"></i> Endorse & Publish to Students
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

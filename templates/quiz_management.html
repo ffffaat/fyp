@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Management - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --usm-purple: #5a2d81;
+            --usm-gold: #ffcc00;
+            --bg-light: #f4f7f6;
+            --sidebar-width: 260px;
+            --danger: #dc3545;
+            --success: #28a745;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background-color: var(--bg-light);
+            display: flex;
+            transition: all 0.3s ease;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--usm-purple);
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-x: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding: 20px 0;
+            left: -260px;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .usm-logo { width: 80px; margin-bottom: 10px; }
+
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+        .nav-link i { margin-right: 15px; width: 20px; text-align: center; }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            border-left: 4px solid var(--usm-gold);
+            background: rgba(255,255,255,0.2);
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .main-content.expanded { margin-left: 0; }
+
+        #toggle-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--usm-purple);
+            font-size: 1.2rem;
+            margin-right: 20px;
+        }
+
+        #toggle-btn:hover { background: #eee; }
+
+        .page-container { max-width: 1000px; margin: auto; }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            margin-bottom: 30px;
+            border-top: 4px solid var(--usm-purple);
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px;
+            background: #fafafa;
+            margin: 20px 0;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid #eee;
+            font-size: 0.8rem;
+            color: #777;
+            text-transform: uppercase;
+        }
+        td { padding: 15px; border-bottom: 1px solid #f9f9f9; }
+
+        .status-pill {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .status-pill.active { background: #e6f4ea; color: var(--success); }
+
+        .status-pill.pending { background: #fff4e5; color: #b05a00; }
+
+        .btn-submit {
+            background: var(--usm-purple);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn-submit:hover { background-color: #482468; }
+
+        .btn-action-link {
+            color: var(--usm-purple);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+            padding: 0;
+        }
+        
+        .btn-delete:hover { transform: scale(1.1); }
+
+        .empty-state { text-align: center; padding: 30px; color: #999; }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 3px 6px 3px 0;
+            border-radius: 999px;
+            background: #f1e9fb;
+            color: var(--usm-purple);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+            <h4 style="margin-top: 10px; font-size: 1.2rem; color: var(--usm-gold);">AI-DaVVA</h4>
+        </div>
+        <nav>
+            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{{ url_for('enroll_students') }}" class="nav-link"><i class="fas fa-user-plus"></i> Student Enrollment</a>
+            <a href="{{ url_for('assignment_management') }}" class="nav-link"><i class="fas fa-file-invoice"></i> Assignment Management</a>
+            <a href="{{ url_for('quiz_management') }}" class="nav-link active"><i class="fas fa-tasks"></i> Quiz Management</a>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div style="display: flex; align-items: center; margin-bottom: 30px;">
+            <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div>
+                <h1 style="margin: 0; color: #333;">Quiz Management</h1>
+                <p style="margin: 6px 0 0; color:#666;">
+                    Generate quizzes automatically using the <b>T5 NLG Engine</b> from your lecture notes (PDF).
+                </p>
+            </div>
+        </div>
+
+        <div class="page-container">
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div style="padding: 15px; background: #e1f5fe; color: #01579b; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <i class="fas fa-info-circle"></i> {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <h3 style="margin-top:0; color:var(--usm-purple);"><i class="fas fa-file-pdf"></i> Upload Notes (PDF)</h3>
+                <p style="margin-top:6px; color:#666;">Upload lecture notes to generate a draft quiz for lecturer endorsement.</p>
+
+                <form action="{{ url_for('upload_scheme') }}" method="POST" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #ccc; margin-bottom:10px;"></i><br>
+                        <input type="file" name="pdf_file" accept=".pdf" required>
+                    </div>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-brain"></i> Generate Quiz Questions (NLG)
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top:0;">Review & Endorse Quizzes ({{ quizzes|length }})</h3>
+
+                {% if quizzes %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Quiz Title</th>
+                            <th>Concepts Detected</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for quiz in quizzes %}
+                        <tr>
+                            <td><b>{{ quiz.title }}</b></td>
+
+                            <td>
+                                {% if quiz.concepts_list is defined and quiz.concepts_list and quiz.concepts_list|length > 0 %}
+                                    {% for c in quiz.concepts_list[:5] %}
+                                        <span class="tag">{{ c }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color:#999;"><i class="fas fa-key"></i> 5 Topics</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="status-pill {{ 'active' if quiz.is_published else 'pending' }}">
+                                    {{ 'Published' if quiz.is_published else 'Draft - Pending Endorsement' }}
+                                </span>
+                            </td>
+
+                            <td style="text-align:right; white-space: nowrap;">
+                                <a class="btn-action-link" href="{{ url_for('review_quiz', quiz_id=quiz.quiz_id) }}">
+                                    <i class="fas fa-eye"></i> Review
+                                </a>
+
+                                <span style="margin: 0 10px; color:#ddd;">|</span>
+
+                                <form action="{{ url_for('delete_quiz', quiz_id=quiz.quiz_id) }}" method="POST"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Are you sure you want to delete this quiz and all its questions?');">
+                                    <button type="submit" class="btn-delete" title="Delete Quiz">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox" style="font-size: 2.5rem; margin-bottom: 12px; color:#bbb;"></i>
+                        <p style="margin:0;">No quizzes available. Upload a PDF above to begin AI generation.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

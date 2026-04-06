@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Activation - AI-DaVVA</title>
+    <style>
+        :root {
+            --usm-purple: #5a2d81; 
+            --bg-overlay: rgba(244, 247, 246, 0.85);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(90, 45, 129, 0.6), rgba(90, 45, 129, 0.6)), 
+                        url("{{ url_for('static', filename='bg.jpeg') }}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .activation-card {
+            background: var(--bg-overlay);
+            backdrop-filter: blur(10px);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.1);
+            width: 380px;
+            border: 1px solid rgb(255, 255, 255);
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .usm-logo {
+            width: 180px; 
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            color: var(--usm-purple);
+            text-align: center;
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #444;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--usm-purple);
+            box-shadow: 0 0 8px rgba(90, 45, 129, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--usm-purple);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #482468;
+            transform: translateY(-2px);
+        }
+
+        .flash-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .info-text {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 15px;
+            line-height: 1.4;
+            text-align: center;
+            background: rgba(90, 45, 129, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .footer-links {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 1.5rem;
+            color: #444;
+        }
+
+        .footer-links a {
+            color: var(--usm-purple);
+            text-decoration: none;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="activation-card">
+        <div class="logo-area">
+            <img src="{{ url_for('static', filename='usm.png') }}" alt="USM Logo" class="usm-logo">
+            <h2>AI-DaVVA</h2>
+            <p class="subtitle">Student Account Activation</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <input type="email" id="email" name="email" placeholder="Student Email (*@student.usm.my)" required>
+            </div>
+
+            <div class="form-group">
+                <input type="password" id="password" name="password" placeholder="Create Password" required>
+            </div>
+
+            <div class="form-group">
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
+            </div>
+
+            <button type="submit">Activate My Account</button>
+        </form>
+
+        <div class="info-text">
+            <b>Note:</b> Access is restricted to students pre-registered by their course lecturer.
+        </div>
+
+        <div class="footer-links">
+            <p>Activated already? <a href="{{ url_for('login') }}">Sign In</a></p>
+        </div>
+    </div>
+</body>
+</html>

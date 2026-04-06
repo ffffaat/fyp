@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --usm-purple: #5a2d81; 
+            --usm-gold: #ffcc00;
+            --bg-light: #f4f7f6; 
+            --sidebar-width: 260px;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-light); 
+            display: flex;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar { 
+            width: var(--sidebar-width); 
+            background: var(--usm-purple); 
+            color: white; 
+            height: 100vh; 
+            padding: 20px; 
+            position: fixed; 
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed { width: 0; padding: 20px 0; left: -260px; }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .usm-logo { width: 80px; margin-bottom: 10px; }
+
+        .nav-link { 
+            color: rgba(255,255,255,0.8); 
+            text-decoration: none; 
+            display: flex; 
+            align-items: center;
+            padding: 12px 15px; 
+            font-size: 0.95rem; 
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+        .nav-link i { 
+            margin-right: 15px; 
+            width: 20px; 
+            text-align: center; 
+        }
+
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
+
+        .nav-link.active { border-left: 4px solid var(--usm-gold); background: rgba(255,255,255,0.2); }
+
+        .main-content { 
+            margin-left: var(--sidebar-width); 
+            padding: 40px; 
+            width: 100%; 
+            transition: all 0.3s ease;
+        }
+
+        .main-content.expanded { margin-left: 0; }
+
+        .welcome-section {
+            background: linear-gradient(rgba(90, 45, 129, 0.8), rgba(90, 45, 129, 0.8)), 
+                        url("{{ url_for('static', filename='bg.jpeg') }}") no-repeat center center;
+            background-size: cover;
+            color: white;
+            padding: 3rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(90, 45, 129, 0.2);
+        }
+
+        #toggle-btn {
+            background: white; border: 1px solid #ddd; padding: 10px 15px;
+            border-radius: 8px; cursor: pointer; color: var(--usm-purple); margin-bottom: 20px;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        
+        .module-card { 
+            background: white; padding: 25px; border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            border-bottom: 4px solid #ddd;
+            transition: 0.3s;
+        }
+
+        .module-card:hover { transform: translateY(-5px); border-bottom-color: var(--usm-purple); }
+
+        .module-card h3 { margin: 0 0 10px 0; color: var(--usm-purple); display: flex; align-items: center; gap: 10px; }
+        
+        .module-card p { color: #777; font-size: 0.9rem; line-height: 1.5; }
+
+        .btn-action {
+            display: inline-block; margin-top: 15px; padding: 10px 20px;
+            background: var(--bg-light); color: var(--usm-purple);
+            text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
+            <h4 style="margin-top: 10px; color: var(--usm-gold);">AI-DaVVA</h4>
+        </div>
+        <nav>
+            <a href="{{ url_for('student_dashboard') }}" class="nav-link active"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="{{ url_for('student_assignments') }}" class="nav-link"><i class="fas fa-book-open"></i> My Assignments</a>
+            <a href="{{ url_for('student_quiz_list') }}" class="nav-link"><i class="fas fa-pen-nib"></i> Quiz Center</a>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <div class="welcome-section">
+            <h1 style="margin: 0; font-size: 2.5rem;">Hello, {{ name }}!</h1>
+            <p style="font-size: 1.2rem; opacity: 0.9; margin-bottom: 5px;">
+                <i class="fas fa-id-card"></i> Matrix No: <b>{{ matrix_no }}</b>
+            </p>
+            <p style="font-size: 1rem; opacity: 0.85;">
+                <i class="fas fa-chalkboard-teacher"></i> Lecturer: <b>Dr. {{ lecturer_name }}</b>
+            </p>
+        </div>
+
+
+        <div class="grid">
+            <div class="module-card">
+                <h3><i class="fas fa-file-upload"></i> Assignments</h3>
+            </div>
+
+            <div class="module-card">
+                <h3><i class="fas fa-stopwatch"></i> Active Quizzes</h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

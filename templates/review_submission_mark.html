@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Submission Mark - AI-DaVVA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --usm-purple: #5a2d81;
+            --usm-gold: #ffcc00;
+            --bg-light: #f4f7f6;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: var(--bg-light);
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border-top: 4px solid var(--usm-purple);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            color: #666;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .btn {
+            background: var(--usm-purple);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn:hover {
+            background: #482468;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .back-link {
+            color: var(--usm-purple);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="{{ url_for('view_submissions', assignment_id=assignment.assignment_id) }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Submissions
+    </a>
+
+    <div class="card" style="margin-top:20px;">
+        <h2 style="margin-top:0;">Review and Endorse Mark</h2>
+        <p><b>Student:</b> {{ submission.student.name }}</p>
+        <p><b>Assignment:</b> {{ assignment.title }}</p>
+        <p><b>AI Score:</b> {{ submission.ai_total_score if submission.ai_total_score is not none else "Not evaluated yet" }}%</p>
+
+        {% if submission.is_mark_released %}
+            <p style="color:green; font-weight:600;">Mark has been released to student.</p>
+        {% else %}
+            <p style="color:#b05a00; font-weight:600;">Mark not released yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">AI Breakdown</h3>
+        {% if scores %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Criterion</th>
+                    <th>Section</th>
+                    <th>Weight</th>
+                    <th>Raw Score</th>
+                    <th>Weighted</th>
+                    <th>Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in scores %}
+                <tr>
+                    <td>{{ s.criterion_name }}</td>
+                    <td>{{ s.section_name }}</td>
+                    <td>{{ s.weight }}</td>
+                    <td>{{ "%.2f"|format(s.raw_score or 0) }}/{{ "%.2f"|format(s.max_scale or 0) }}</td>
+                    <td>{{ "%.2f"|format(s.weighted_score or 0) }}</td>
+                    <td>{{ s.feedback }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No AI breakdown available yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Lecturer Endorsement</h3>
+        <form method="POST">
+            <div style="margin-bottom:15px;">
+                <label><b>Final Score (%)</b></label>
+                <input type="number" step="0.01" min="0" max="100"
+                       name="lecturer_final_score"
+                       class="form-control"
+                       value="{{ submission.lecturer_final_score if submission.lecturer_final_score is not none else submission.ai_total_score if submission.ai_total_score is not none else '' }}">
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label><b>Lecturer Feedback</b></label>
+                <textarea name="lecturer_feedback" class="form-control">{{ submission.lecturer_feedback or "" }}</textarea>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <button type="submit" name="action" value="save" class="btn-secondary">
+                    <i class="fas fa-save"></i> Save Review
+                </button>
+                <button type="submit" name="action" value="endorse" class="btn">
+                    <i class="fas fa-check-circle"></i> Endorse & Release
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
