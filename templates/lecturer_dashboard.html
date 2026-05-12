@@ -5,29 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lecturer Dashboard - AI-DaVVA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        :root { 
-            --usm-purple: #5a2d81; 
+        :root {
+            --usm-purple: #5a2d81;
+            --usm-purple-dark: #482468;
             --usm-gold: #ffcc00;
-            --bg-light: #f4f7f6; 
+            --bg-overlay: rgba(244, 247, 246, 0.88);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --text-main: #333;
+            --text-muted: #666;
+            --success: #28a745;
             --sidebar-width: 260px;
         }
 
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            background-color: var(--bg-light); 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            min-height: 100vh;
             display: flex;
-            transition: all 0.3s ease;
+            background:
+                linear-gradient(rgba(90, 45, 129, 0.60), rgba(90, 45, 129, 0.60)),
+                url("{{ url_for('static', filename='bg.jpeg') }}") no-repeat center center fixed;
+            background-size: cover;
         }
 
-        .sidebar { 
-            width: var(--sidebar-width); 
-            background: var(--usm-purple); 
-            color: white; 
-            height: 100vh; 
-            padding: 20px; 
-            position: fixed; 
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--usm-purple);
+            color: #fff;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
             transition: all 0.3s ease;
             z-index: 1000;
             overflow-x: hidden;
@@ -51,97 +61,217 @@
             margin-bottom: 10px;
         }
 
-        .nav-link { 
-            color: rgba(255,255,255,0.8); 
-            text-decoration: none; 
-            display: flex; 
+        .brand-title {
+            margin: 0;
+            font-size: 1.3rem;
+            color: var(--usm-gold);
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            margin-top: 6px;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.75);
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            display: flex;
             align-items: center;
-            padding: 12px 15px; 
-            font-size: 0.95rem; 
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: 0.2s;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            transition: 0.2s ease;
         }
 
-        .nav-link i { 
-            margin-right: 15px; 
-            width: 20px; 
-            text-align: center; 
+        .nav-link i {
+            width: 20px;
+            margin-right: 14px;
+            text-align: center;
         }
 
-        .nav-link.active { border-left: 4px solid var(--usm-gold); background: rgba(255,255,255,0.2); }
-       
-        .nav-link:hover { background: rgba(255,255,255,0.1); color: white;}
+        .nav-link.active {
+            background: rgba(255,255,255,0.18);
+            border-left: 4px solid var(--usm-gold);
+        }
 
-        .main-content { 
-            margin-left: var(--sidebar-width); 
-            padding: 40px; 
-            width: 100%; 
+        .nav-link:hover {
+            background: rgba(255,255,255,0.10);
+            color: white;
+        }
+
+        .sidebar hr {
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            margin: 20px 0;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            width: 100%;
+            padding: 34px;
             transition: all 0.3s ease;
         }
 
-        .main-content.expanded {margin-left: 0;}
+        .main-content.expanded {
+            margin-left: 0;
+        }
 
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 30px; 
+        .top-shell {
+            background: var(--bg-overlay);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: 18px;
+            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.08);
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
         }
 
         #toggle-btn {
-            background: white;
+            background: rgba(255,255,255,0.95);
             border: 1px solid #ddd;
-            padding: 10px 15px;
-            border-radius: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
             cursor: pointer;
             color: var(--usm-purple);
-            font-size: 1.2rem;
-            margin-right: 20px;
+            font-size: 1.15rem;
+            margin-right: 16px;
+            transition: 0.2s ease;
         }
 
-        #toggle-btn:hover { background: #eee; }
-
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-            gap: 25px; }
-        
-        .card { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            border-top: 4px solid var(--usm-purple);
-        }
-        
-        .card h3 { 
-            margin: 0; 
-            color: #777; 
-            font-size: 0.85rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
+        #toggle-btn:hover {
+            background: #f3f3f3;
         }
 
-        .card p { 
-            margin: 15px 0 0; 
-            font-size: 2.2rem; 
-            font-weight: bold; 
-            color: var(--usm-purple); 
+        .welcome-title {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 2rem;
+        }
+
+        .welcome-subtitle {
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .lecturer-badge {
+            background: rgba(255,255,255,0.85);
+            color: var(--usm-purple);
+            border: 1px solid rgba(90,45,129,0.12);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.08);
+        }
+
+        .card h3 {
+            margin: 0;
+            color: #777;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card p {
+            margin: 14px 0 8px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--usm-purple);
+        }
+
+        .card small {
+            color: #777;
+            font-size: 0.78rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
         .performance-box {
-            margin-top: 40px; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.08);
         }
 
-        hr { 
-            border: 0; 
-            border-top: 1px solid rgba(255,255,255,0.1); 
-            margin: 20px 0; 
+        .performance-box h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--usm-purple);
+            font-size: 1.05rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 320px;
+        }
+
+        .empty-chart {
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #888;
+            border-radius: 12px;
+            border: 2px dashed #d6d6d6;
+            background: rgba(255,255,255,0.55);
+            padding: 18px;
+        }
+
+        @media (max-width: 980px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 16px;
+            }
+
+            .top-shell {
+                padding: 18px;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -152,60 +282,220 @@
             <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
             <h4 style="margin-top: 10px; font-size: 1.2rem; color: var(--usm-gold);">AI-DaVVA</h4>
         </div>
-        
+
         <nav>
-            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link active"><i class="fas fa-th-large"></i> Dashboard</a>
-            <a href="{{ url_for('enroll_students') }}" class="nav-link"><i class="fas fa-user-plus"></i> Student Enrollment</a>
-            <a href="{{ url_for('assignment_management') }}" class="nav-link"><i class="fas fa-file-invoice"></i> Assignment Management</a>
-            <a href="{{ url_for('quiz_management') }}" class="nav-link"><i class="fas fa-tasks"></i> Quiz Management</a>
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link active">
+                <i class="fas fa-th-large"></i> Dashboard
+            </a>
+            <a href="{{ url_for('enroll_students') }}" class="nav-link">
+                <i class="fas fa-user-plus"></i> Student Enrollment
+            </a>
+            <a href="{{ url_for('assignment_management') }}" class="nav-link">
+                <i class="fas fa-file-invoice"></i> Assignment Management
+            </a>
+            <a href="{{ url_for('quiz_management') }}" class="nav-link">
+                <i class="fas fa-tasks"></i> Quiz Management
+            </a>
+            <hr>
+            <a href="{{ url_for('logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </nav>
     </div>
 
     <div class="main-content" id="main-content">
-        <div class="header">
-            <div style="display: flex; align-items: center;">
-                <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <h1 style="margin: 0; color: #333;">Welcome, Dr. {{ name }}</h1>
-            </div>
-            <span style="color: #666; font-weight: 500;">Session 2025/2026</span>
-        </div>
+        <div class="top-shell">
+            <div class="header">
+                <div class="header-left">
+                    <button id="toggle-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1 class="welcome-title">Welcome, Dr. {{ name }}</h1>
+                        <div class="welcome-subtitle">Class performance overview</div>
+                    </div>
+                </div>
 
-        <div class="stats-grid">
-            <div class="card">
-        <h3>Class Enrollment</h3>
-        <p>
-            <span style="color: #28a745;">{{ active_count }}</span> 
-            <span style="color: #ccc; font-weight: 300;">/</span> 
-            {{ total_count }}
-        </p>
-        <small style="color: #888; font-size: 0.75rem;">Active Students</small>
-    </div>
-            <div class="card">
-                <h3>Assignments Pending</h3>
-                <p>-</p>
+                <div class="lecturer-badge">
+                    Session 2025/2026
+                </div>
             </div>
-            <div class="card">
-                <h3>Avg. Quiz Score</h3>
-                <p>-</p>
+
+            <div class="stats-grid">
+                <div class="card">
+                    <h3>Class Enrollment</h3>
+                    <p>
+                        <span style="color: var(--success);">{{ active_count }}</span>
+                        <span style="color: #c8c8c8; font-weight: 300;">/</span>
+                        {{ total_count }}
+                    </p>
+                    <small>Active Students</small>
+                </div>
+
+                <div class="card">
+                    <h3>Assignments Pending</h3>
+                    <p>{{ assignments_pending }}</p>
+                    <small>Waiting for review</small>
+                </div>
+
+                <div class="card">
+                    <h3>Avg. Quiz Score</h3>
+                    <p>{{ avg_quiz_score if avg_quiz_score is not none else "-" }}</p>
+                    <small>Based on submitted quiz attempts</small>
+                </div>
+
+                <div class="card">
+                    <h3>Published Quizzes</h3>
+                    <p>{{ published_quizzes }}</p>
+                    <small>Total active quizzes</small>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="performance-box">
+                    <h3><i class="fas fa-chart-line"></i> Student Assignment Performance</h3>
+
+                    {% if assignment_chart_labels and assignment_chart_values %}
+                        <div class="chart-wrap">
+                            <canvas id="assignmentChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No assignment scores available yet.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="performance-box">
+                    <h3><i class="fas fa-chart-bar"></i> Student Quiz Performance</h3>
+
+                    {% if quiz_chart_labels and quiz_chart_values %}
+                        <div class="chart-wrap">
+                            <canvas id="quizChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No quiz scores available yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        <div class="performance-box">
-            <h3 style="color: var(--usm-purple);"><i class="fas fa-chart-line"></i> Class Assignment Performance Trends</h3>
-        </div>
-        <div class="performance-box">
-            <h3 style="color: var(--usm-purple);"><i class="fas fa-chart-line"></i> Class Quiz Performance Trends</h3>
-        </div>
     </div>
+
+    <script id="assignment-labels-data" type="application/json">
+        {{ (assignment_chart_labels or []) | tojson | safe }}
+    </script>
+    <script id="assignment-values-data" type="application/json">
+        {{ (assignment_chart_values or []) | tojson | safe }}
+    </script>
+    <script id="quiz-labels-data" type="application/json">
+        {{ (quiz_chart_labels or []) | tojson | safe }}
+    </script>
+    <script id="quiz-values-data" type="application/json">
+        {{ (quiz_chart_values or []) | tojson | safe }}
+    </script>
 
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('main-content');
-            
+
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
+        }
+
+        const assignmentLabels = JSON.parse(document.getElementById('assignment-labels-data').textContent);
+        const assignmentValues = JSON.parse(document.getElementById('assignment-values-data').textContent);
+        const quizLabels = JSON.parse(document.getElementById('quiz-labels-data').textContent);
+        const quizValues = JSON.parse(document.getElementById('quiz-values-data').textContent);
+
+        if (document.getElementById('assignmentChart') && assignmentLabels.length > 0) {
+            const assignmentCtx = document.getElementById('assignmentChart').getContext('2d');
+
+            new Chart(assignmentCtx, {
+                type: 'bar',
+                data: {
+                    labels: assignmentLabels,
+                    datasets: [{
+                        label: 'Average Assignment Score',
+                        data: assignmentValues,
+                        backgroundColor: 'rgba(90, 45, 129, 0.75)',
+                        borderColor: '#5a2d81',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(255, 204, 0, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (document.getElementById('quizChart') && quizLabels.length > 0) {
+            const quizCtx = document.getElementById('quizChart').getContext('2d');
+
+            new Chart(quizCtx, {
+                type: 'bar',
+                data: {
+                    labels: quizLabels,
+                    datasets: [{
+                        label: 'Average Quiz Score',
+                        data: quizValues,
+                        backgroundColor: 'rgba(255, 204, 0, 0.75)',
+                        borderColor: '#d4a600',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(90, 45, 129, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>

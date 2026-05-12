@@ -5,34 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - AI-DaVVA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        :root { 
-            --usm-purple: #5a2d81; 
+        :root {
+            --usm-purple: #5a2d81;
+            --usm-purple-dark: #482468;
             --usm-gold: #ffcc00;
-            --bg-light: #f4f7f6; 
+            --bg-overlay: rgba(244, 247, 246, 0.88);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --text-main: #333;
+            --text-muted: #666;
+            --success: #28a745;
             --sidebar-width: 260px;
         }
 
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            background-color: var(--bg-light); 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            min-height: 100vh;
             display: flex;
-            transition: all 0.3s ease;
+            background:
+                linear-gradient(rgba(90, 45, 129, 0.60), rgba(90, 45, 129, 0.60)),
+                url("{{ url_for('static', filename='bg.jpeg') }}") no-repeat center center fixed;
+            background-size: cover;
         }
 
-        .sidebar { 
-            width: var(--sidebar-width); 
-            background: var(--usm-purple); 
-            color: white; 
-            height: 100vh; 
-            padding: 20px; 
-            position: fixed; 
-            transition: all 0.3s ease;
-            z-index: 1000;
+        .sidebar {
+            width:var(--sidebar-width);
+            background:var(--usm-purple);
+            color:#fff;
+            height:100vh;
+            padding:20px;
+            position:fixed;
+            transition:.3s;
+            z-index:1000;
+            overflow-x:hidden
         }
 
-        .sidebar.collapsed { width: 0; padding: 20px 0; left: -260px; }
+        .sidebar.collapsed {
+            width:0;
+            padding:20px 0;
+            left:-260px
+        }
 
         .logo-area {
             text-align: center;
@@ -41,124 +56,456 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .usm-logo { width: 80px; margin-bottom: 10px; }
+        .usm-logo {
+            width: 80px;
+            margin-bottom: 10px;
+        }
 
-        .nav-link { 
-            color: rgba(255,255,255,0.8); 
-            text-decoration: none; 
-            display: flex; 
+        .brand-title {
+            margin: 0;
+            font-size: 1.3rem;
+            color: var(--usm-gold);
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            margin-top: 6px;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.75);
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            display: flex;
             align-items: center;
-            padding: 12px 15px; 
-            font-size: 0.95rem; 
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: 0.2s;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            transition: 0.2s ease;
         }
 
-        .nav-link i { 
-            margin-right: 15px; 
-            width: 20px; 
-            text-align: center; 
+        .nav-link i {
+            width: 20px;
+            margin-right: 14px;
+            text-align: center;
         }
 
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
+        .nav-link.active {
+            background: rgba(255,255,255,0.18);
+            border-left: 4px solid var(--usm-gold);
+        }
 
-        .nav-link.active { border-left: 4px solid var(--usm-gold); background: rgba(255,255,255,0.2); }
+        .nav-link:hover {
+            background: rgba(255,255,255,0.10);
+            color: white;
+        }
 
-        .main-content { 
-            margin-left: var(--sidebar-width); 
-            padding: 40px; 
-            width: 100%; 
+        .sidebar hr {
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            margin: 20px 0;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            width: 100%;
+            padding: 34px;
             transition: all 0.3s ease;
         }
 
-        .main-content.expanded { margin-left: 0; }
+        .main-content.expanded {
+            margin-left: 0;
+        }
 
-        .welcome-section {
-            background: linear-gradient(rgba(90, 45, 129, 0.8), rgba(90, 45, 129, 0.8)), 
-                        url("{{ url_for('static', filename='bg.jpeg') }}") no-repeat center center;
-            background-size: cover;
-            color: white;
-            padding: 3rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(90, 45, 129, 0.2);
+        .top-shell {
+            background: var(--bg-overlay);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: 18px;
+            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.08);
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
         }
 
         #toggle-btn {
-            background: white; border: 1px solid #ddd; padding: 10px 15px;
-            border-radius: 8px; cursor: pointer; color: var(--usm-purple); margin-bottom: 20px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--usm-purple);
+            font-size: 1.15rem;
+            margin-right: 16px;
+            transition: 0.2s ease;
         }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
-        
-        .module-card { 
-            background: white; padding: 25px; border-radius: 15px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            border-bottom: 4px solid #ddd;
-            transition: 0.3s;
+        #toggle-btn:hover {
+            background: #f3f3f3;
         }
 
-        .module-card:hover { transform: translateY(-5px); border-bottom-color: var(--usm-purple); }
+        .welcome-title {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 2rem;
+        }
 
-        .module-card h3 { margin: 0 0 10px 0; color: var(--usm-purple); display: flex; align-items: center; gap: 10px; }
-        
-        .module-card p { color: #777; font-size: 0.9rem; line-height: 1.5; }
+        .welcome-subtitle {
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
 
-        .btn-action {
-            display: inline-block; margin-top: 15px; padding: 10px 20px;
-            background: var(--bg-light); color: var(--usm-purple);
-            text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem;
+        .student-badge {
+            background: rgba(255,255,255,0.85);
+            color: var(--usm-purple);
+            border: 1px solid rgba(90,45,129,0.12);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .info-line {
+            margin-top: 10px;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .info-line i {
+            color: var(--usm-purple);
+            margin-right: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.08);
+        }
+
+        .card h3 {
+            margin: 0;
+            color: #777;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card p {
+            margin: 14px 0 8px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--usm-purple);
+        }
+
+        .card small {
+            color: #777;
+            font-size: 0.78rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .performance-box {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.08);
+        }
+
+        .performance-box h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--usm-purple);
+            font-size: 1.05rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 320px;
+        }
+
+        .empty-chart {
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #888;
+            border-radius: 12px;
+            border: 2px dashed #d6d6d6;
+            background: rgba(255,255,255,0.55);
+            padding: 18px;
+        }
+
+        @media (max-width: 980px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 16px;
+            }
+
+            .top-shell {
+                padding: 18px;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 
 <body>
-
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <img src="{{ url_for('static', filename='usm1.png') }}" alt="USM Logo" class="usm-logo">
-            <h4 style="margin-top: 10px; color: var(--usm-gold);">AI-DaVVA</h4>
+            <h4 style="margin-top:10px;font-size:1.2rem;color:var(--usm-gold);">AI-DaVVA</h4>
         </div>
+
         <nav>
-            <a href="{{ url_for('student_dashboard') }}" class="nav-link active"><i class="fas fa-home"></i> Dashboard</a>
-            <a href="{{ url_for('student_assignments') }}" class="nav-link"><i class="fas fa-book-open"></i> My Assignments</a>
-            <a href="{{ url_for('student_quiz_list') }}" class="nav-link"><i class="fas fa-pen-nib"></i> Quiz Center</a>
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="{{ url_for('student_dashboard') }}" class="nav-link active">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('student_assignments') }}" class="nav-link">
+                <i class="fas fa-book-open"></i> My Assignments
+            </a>
+            <a href="{{ url_for('student_quiz_list') }}" class="nav-link">
+                <i class="fas fa-pen-nib"></i> Quiz Center
+            </a>
+            <hr>
+            <a href="{{ url_for('logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </nav>
     </div>
 
     <div class="main-content" id="main-content">
-        <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-        <div class="welcome-section">
-            <h1 style="margin: 0; font-size: 2.5rem;">Hello, {{ name }}!</h1>
-            <p style="font-size: 1.2rem; opacity: 0.9; margin-bottom: 5px;">
-                <i class="fas fa-id-card"></i> Matrix No: <b>{{ matrix_no }}</b>
-            </p>
-            <p style="font-size: 1rem; opacity: 0.85;">
-                <i class="fas fa-chalkboard-teacher"></i> Lecturer: <b>Dr. {{ lecturer_name }}</b>
-            </p>
-        </div>
+        <div class="top-shell">
+            <div class="header">
+                <div class="header-left">
+                    <button id="toggle-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1 class="welcome-title">Hello, {{ name }}!</h1>
+                        <div class="welcome-subtitle">Personal learning overview</div>
+                        <div class="info-line">
+                            <i class="fas fa-id-card"></i> Matrix No: <b>{{ matrix_no }}</b>
+                        </div>
+                        <div class="info-line">
+                            <i class="fas fa-chalkboard-teacher"></i> Lecturer: <b>Dr. {{ lecturer_name }}</b>
+                        </div>
+                    </div>
+                </div>
 
-
-        <div class="grid">
-            <div class="module-card">
-                <h3><i class="fas fa-file-upload"></i> Assignments</h3>
+                <div class="student-badge">
+                    Student Dashboard
+                </div>
             </div>
 
-            <div class="module-card">
-                <h3><i class="fas fa-stopwatch"></i> Active Quizzes</h3>
+            <div class="stats-grid">
+                <div class="card">
+                    <h3>Total Assignments</h3>
+                    <p>{{ total_assignments }}</p>
+                    <small>Submitted assignments</small>
+                </div>
+
+                <div class="card">
+                    <h3>Completed Quizzes</h3>
+                    <p>{{ completed_quizzes }}</p>
+                    <small>Quiz attempts recorded</small>
+                </div>
+
+                <div class="card">
+                    <h3>Avg. Assignment Score</h3>
+                    <p>{{ avg_assignment_score if avg_assignment_score is not none else "-" }}</p>
+                    <small>Based on available assignment scores</small>
+                </div>
+
+                <div class="card">
+                    <h3>Avg. Quiz Score</h3>
+                    <p>{{ avg_quiz_score if avg_quiz_score is not none else "-" }}</p>
+                    <small>Based on completed quizzes</small>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="performance-box">
+                    <h3><i class="fas fa-chart-line"></i> My Assignment Performance</h3>
+
+                    {% if assignment_chart_labels and assignment_chart_values %}
+                        <div class="chart-wrap">
+                            <canvas id="assignmentChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No assignment scores available yet.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="performance-box">
+                    <h3><i class="fas fa-chart-bar"></i> My Quiz Performance</h3>
+
+                    {% if quiz_chart_labels and quiz_chart_values %}
+                        <div class="chart-wrap">
+                            <canvas id="quizChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No quiz scores available yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
+
+    <script id="assignment-labels-data" type="application/json">
+        {{ (assignment_chart_labels or []) | tojson | safe }}
+    </script>
+    <script id="assignment-values-data" type="application/json">
+        {{ (assignment_chart_values or []) | tojson | safe }}
+    </script>
+    <script id="quiz-labels-data" type="application/json">
+        {{ (quiz_chart_labels or []) | tojson | safe }}
+    </script>
+    <script id="quiz-values-data" type="application/json">
+        {{ (quiz_chart_values or []) | tojson | safe }}
+    </script>
 
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('main-content');
+
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
+        }
+
+        const assignmentLabels = JSON.parse(document.getElementById('assignment-labels-data').textContent);
+        const assignmentValues = JSON.parse(document.getElementById('assignment-values-data').textContent);
+        const quizLabels = JSON.parse(document.getElementById('quiz-labels-data').textContent);
+        const quizValues = JSON.parse(document.getElementById('quiz-values-data').textContent);
+
+        if (document.getElementById('assignmentChart') && assignmentLabels.length > 0) {
+            const assignmentCtx = document.getElementById('assignmentChart').getContext('2d');
+
+            new Chart(assignmentCtx, {
+                type: 'bar',
+                data: {
+                    labels: assignmentLabels,
+                    datasets: [{
+                        label: 'Assignment Score',
+                        data: assignmentValues,
+                        backgroundColor: 'rgba(90, 45, 129, 0.75)',
+                        borderColor: '#5a2d81',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(255, 204, 0, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (document.getElementById('quizChart') && quizLabels.length > 0) {
+            const quizCtx = document.getElementById('quizChart').getContext('2d');
+
+            new Chart(quizCtx, {
+                type: 'bar',
+                data: {
+                    labels: quizLabels,
+                    datasets: [{
+                        label: 'Quiz Score',
+                        data: quizValues,
+                        backgroundColor: 'rgba(255, 204, 0, 0.75)',
+                        borderColor: '#d4a600',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(90, 45, 129, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>

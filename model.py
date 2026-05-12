@@ -71,6 +71,7 @@ class Assignment(db.Model):
         cascade="all, delete-orphan"
     )
 
+
 class Submission(db.Model):
     __tablename__ = "submission"
 
@@ -94,6 +95,10 @@ class Submission(db.Model):
     ai_status = db.Column(db.String(50), default="Not Evaluated")
     ai_feedback = db.Column(db.Text, nullable=True)
 
+    # New fields for improved AI assignment marking
+    reference_quality_score = db.Column(db.Float, nullable=True)
+    ai_result_json = db.Column(db.Text, nullable=True)
+
     lecturer_final_score = db.Column(db.Float, nullable=True)
     lecturer_feedback = db.Column(db.Text, nullable=True)
     is_mark_released = db.Column(db.Boolean, default=False, nullable=False)
@@ -104,6 +109,7 @@ class Submission(db.Model):
     )
 
     student = db.relationship("Student", backref="submissions")
+
 
 class SubmissionCriterionScore(db.Model):
     __tablename__ = "submission_criterion_score"
@@ -134,6 +140,7 @@ class SubmissionCriterionScore(db.Model):
         backref=db.backref("criterion_scores", lazy=True, cascade="all, delete-orphan")
     )
 
+
 class Quiz(db.Model):
     __tablename__ = 'quiz'
 
@@ -141,7 +148,7 @@ class Quiz(db.Model):
     title = db.Column(db.String(200), nullable=False)
     is_published = db.Column(db.Boolean, default=False)
     lecturer_id = db.Column(db.Integer, db.ForeignKey('lecturer.lecturer_id'), nullable=False)
-    concepts = db.Column(db.Text, nullable=True) 
+    concepts = db.Column(db.Text, nullable=True)
     questions = db.relationship(
         'Question',
         backref='parent_quiz',
@@ -156,6 +163,7 @@ class Quiz(db.Model):
         cascade='all, delete-orphan',
         passive_deletes=True
     )
+
 
 class Question(db.Model):
     __tablename__ = 'question'
@@ -173,8 +181,8 @@ class Question(db.Model):
 
     def __repr__(self):
         return f"<Question {self.question_id} quiz={self.quiz_id}>"
-    
-    
+
+
 class QuizAttempt(db.Model):
     __tablename__ = 'quiz_attempt'
 
@@ -195,6 +203,7 @@ class QuizAttempt(db.Model):
         cascade='all, delete-orphan',
         passive_deletes=True
     )
+
 
 class AttemptAnswer(db.Model):
     __tablename__ = "attempt_answer"

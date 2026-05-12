@@ -176,6 +176,82 @@
       padding:30px;
       color:#999
     }
+
+    .rubric-table-wrap {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .rubric-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid #ececec;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .rubric-table th,
+    .rubric-table td {
+      border: 1px solid #ececec;
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .rubric-table th {
+      background: #faf8fd;
+      color: var(--usm-purple);
+      font-weight: 700;
+    }
+
+    .rubric-table td:first-child {
+      width: 24%;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .rubric-table td:nth-child(2) {
+      width: 16%;
+      font-weight: 700;
+      color: #444;
+      white-space: nowrap;
+    }
+
+    .rubric-table td:nth-child(3) {
+      width: 60%;
+      color: #444;
+    }
+
+    .weighted-note {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #777;
+    }
+
+    .feedback-section {
+      padding: 14px 0;
+      border-top: 1px solid #e6e6e6;
+    }
+
+    .feedback-section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .section-heading {
+      font-weight: 700;
+      color: var(--usm-purple);
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .section-content {
+      color: #444;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -199,7 +275,7 @@
       <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
       <div>
         <h1 style="margin:0;color:#333;">My Assignments</h1>
-        <p style="margin:6px 0 0;color:#666;">View assignment details and upload your submission.</p>
+        <p style="margin:6px 0 0;color:#666;">View assignment details, upload submissions, and review released feedback.</p>
       </div>
     </div>
 
@@ -239,6 +315,7 @@
             </div>
 
             {% set submission = submission_map.get(assignment.assignment_id) %}
+            {% set ai_result = ai_result_map.get(assignment.assignment_id) %}
 
             {% if submission %}
               <span class="status-pill active">Submitted</span>
@@ -253,26 +330,65 @@
             {% else %}
               <span class="status-pill pending">Not Submitted</span>
             {% endif %}
-            {% if submission and submission.is_mark_released %}
-                <div style="margin-top:10px;">
-                <p style="margin:0;">
-                    <b style="color: var(--danger); font-size:1.1rem;">
-                        Final Mark: 
-                        {{ submission.lecturer_final_score if submission.lecturer_final_score is not none else submission.ai_total_score }}%
-                    </b>
-                </p>
 
-                {% if submission.lecturer_feedback %}
-                    <div style="margin-top:8px; font-size:0.9rem;">
-                        <b>Lecturer Feedback:</b><br>
-                        <span style="color:#444;">{{ submission.lecturer_feedback }}</span>
-                    </div>
-                {% endif %}
-            </div>
+            {% if submission and submission.is_mark_released %}
+              <div class="feedback-panel" style="margin-top: 20px;">
+
+                <div class="feedback-section">
+                  <div class="section-heading">Final Mark</div>
+                  <div class="section-content">
+                    <b style="color: var(--danger); font-size:1.1rem;">
+                      {{ submission.lecturer_final_score if submission.lecturer_final_score is not none else submission.ai_total_score }}%
+                    </b>
+                  </div>
+                </div>
+
+                <div class="feedback-section">
+                  <div class="section-heading">Lecturer Feedback</div>
+                  <div class="section-content">
+                    {{ submission.lecturer_feedback or "No lecturer feedback provided." }}
+                  </div>
+                </div>
+
+                <div class="feedback-section">
+                  <div class="section-heading">Generated AI Rubric Feedback</div>
+                  <div class="section-content">
+                    {% if ai_result and ai_result.criteria_results %}
+                      <div class="rubric-table-wrap">
+                        <table class="rubric-table">
+                          <thead>
+                            <tr>
+                              <th>Section</th>
+                              <th>Mark</th>
+                              <th>Feedback</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for item in ai_result.criteria_results %}
+                            <tr>
+                              <td>{{ item.criterion_name }}</td>
+                              <td>
+                                {{ item.raw_score }}/{{ item.max_scale }}
+                                {% if item.weighted_score is defined %}
+                                  <br><span class="weighted-note">Weighted: {{ item.weighted_score }}</span>
+                                {% endif %}
+                              </td>
+                              <td>{{ item.feedback }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% else %}
+                      No AI rubric feedback available.
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
             {% else %}
-            <div style="margin-top:10px; color:#b05a00; font-size:0.9rem;">
-                <i class="fas fa-clock"></i> Mark pending
-            </div>
+              <div class="pending-note">
+                <i class="fas fa-clock"></i> Mark and feedback pending
+              </div>
             {% endif %}
 
             <form action="{{ url_for('student_assignments') }}" method="POST" enctype="multipart/form-data" style="margin-top:18px;">

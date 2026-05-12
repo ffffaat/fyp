@@ -188,15 +188,112 @@ def lecturer_dashboard():
     if not _require_lecturer():
         return redirect(url_for("login"))
 
-    my_students = Student.query.filter_by(lecturer_id=current_user.lecturer_id).all()
-    active_count = len([s for s in my_students if s.is_active])
+    my_students = Student.query.filter_by(
+        lecturer_id=current_user.lecturer_id
+    ).all()
+
+    active_count = sum(1 for s in my_students if s.is_active)
+    total_count = len(my_students)
+
+    # ----------------------------
+    # Assignment data
+    # ----------------------------
+    my_assignments = Assignment.query.filter_by(
+        lecturer_id=current_user.lecturer_id
+    ).all()
+    assignment_ids = [a.assignment_id for a in my_assignments]
+
+    submissions = []
+    if assignment_ids:
+        submissions = Submission.query.filter(
+            Submission.assignment_id.in_(assignment_ids)
+        ).all()
+
+    assignments_pending = sum(
+        1 for s in submissions
+        if (s.ai_status != "Evaluated" and not s.is_mark_released)
+    )
+
+    reviewed_assignments = sum(
+        1 for s in submissions
+        if s.ai_status == "Evaluated"
+    )
+
+    # Student assignment performance graph
+    assignment_score_map = {}
+    for s in submissions:
+        if s.lecturer_final_score is not None:
+            score = s.lecturer_final_score
+        elif s.ai_total_score is not None:
+            score = s.ai_total_score
+        else:
+            continue
+
+        student_obj = s.student
+        if student_obj:
+            assignment_score_map.setdefault(student_obj.name, []).append(score)
+
+    assignment_chart_labels = []
+    assignment_chart_values = []
+
+    for student_name, scores in assignment_score_map.items():
+        if scores:
+            assignment_chart_labels.append(student_name)
+            assignment_chart_values.append(round(sum(scores) / len(scores), 2))
+
+    # ----------------------------
+    # Quiz data
+    # ----------------------------
+    my_quizzes = Quiz.query.filter_by(
+        lecturer_id=current_user.lecturer_id
+    ).all()
+
+    published_quizzes = sum(1 for q in my_quizzes if q.is_published)
+
+    quiz_ids = [q.quiz_id for q in my_quizzes]
+    attempts = []
+    if quiz_ids:
+        attempts = QuizAttempt.query.filter(
+            QuizAttempt.quiz_id.in_(quiz_ids)
+        ).all()
+
+    avg_quiz_score = None
+    if attempts:
+        valid_percents = [a.percent for a in attempts if a.percent is not None]
+        if valid_percents:
+            avg_quiz_score = round(sum(valid_percents) / len(valid_percents), 2)
+
+    # Student quiz performance graph
+    quiz_score_map = {}
+    for a in attempts:
+        if a.percent is None:
+            continue
+        student_obj = Student.query.get(a.student_id)
+        if student_obj:
+            quiz_score_map.setdefault(student_obj.name, []).append(a.percent)
+
+    quiz_chart_labels = []
+    quiz_chart_values = []
+
+    for student_name, scores in quiz_score_map.items():
+        if scores:
+            quiz_chart_labels.append(student_name)
+            quiz_chart_values.append(round(sum(scores) / len(scores), 2))
 
     return render_template(
         "lecturer_dashboard.html",
         name=current_user.name,
-        total_count=len(my_students),
+        total_count=total_count,
         active_count=active_count,
         students=my_students,
+        assignments_pending=assignments_pending,
+        reviewed_assignments=reviewed_assignments,
+        published_quizzes=published_quizzes,
+        avg_quiz_score=avg_quiz_score,
+        assignment_chart_labels=assignment_chart_labels,
+        assignment_chart_values=assignment_chart_values,
+        quiz_chart_labels=quiz_chart_labels,
+        quiz_chart_values=quiz_chart_values,
     )
 
 @app.route("/student/dashboard")
@@ -205,11 +302,75 @@ def student_dashboard():
     if not _require_student():
         return redirect(url_for("login"))
 
+    # ----------------------------
+    # Assignment data for this student
+    # ----------------------------
+    my_submissions = Submission.query.filter_by(
+        student_id=current_user.student_id
+    ).all()
+
+    assignment_chart_labels = []
+    assignment_chart_values = []
+
+    for sub in my_submissions:
+        assignment_obj = Assignment.query.get(sub.assignment_id)
+        if not assignment_obj:
+            continue
+
+        if sub.lecturer_final_score is not None:
+            score = sub.lecturer_final_score
+        elif sub.ai_total_score is not None:
+            score = sub.ai_total_score
+        else:
+            score = None
+
+        if score is not None:
+            assignment_chart_labels.append(assignment_obj.title)
+            assignment_chart_values.append(round(score, 2))
+
+    # ----------------------------
+    # Quiz data for this student
+    # ----------------------------
+    my_attempts = QuizAttempt.query.filter_by(
+        student_id=current_user.student_id
+    ).all()
+
+    quiz_chart_labels = []
+    quiz_chart_values = []
+
+    for attempt in my_attempts:
+        quiz_obj = Quiz.query.get(attempt.quiz_id)
+        if not quiz_obj or attempt.percent is None:
+            continue
+
+        quiz_chart_labels.append(quiz_obj.title)
+        quiz_chart_values.append(round(attempt.percent, 2))
+
+    # Stats
+    total_assignments = len(my_submissions)
+    completed_quizzes = len(my_attempts)
+
+    avg_assignment_score = None
+    if assignment_chart_values:
+        avg_assignment_score = round(sum(assignment_chart_values) / len(assignment_chart_values), 2)
+
+    avg_quiz_score = None
+    if quiz_chart_values:
+        avg_quiz_score = round(sum(quiz_chart_values) / len(quiz_chart_values), 2)
+
     return render_template(
         "student_dashboard.html",
         name=current_user.name,
         matrix_no=current_user.matrix_no,
         lecturer_name=current_user.owner_lecturer.name,
+        total_assignments=total_assignments,
+        completed_quizzes=completed_quizzes,
+        avg_assignment_score=avg_assignment_score,
+        avg_quiz_score=avg_quiz_score,
+        assignment_chart_labels=assignment_chart_labels,
+        assignment_chart_values=assignment_chart_values,
+        quiz_chart_labels=quiz_chart_labels,
+        quiz_chart_values=quiz_chart_values,
     )
 
 # ----------------------------
@@ -334,6 +495,8 @@ def upload_scheme():
             return redirect(url_for("quiz_management"))
 
         quiz_service = QuizGenerationService()
+        seen_questions = set()
+        seen_corrects = set()
 
         new_quiz = Quiz(
             title=f"AI Quiz: {safe_name}",
@@ -354,6 +517,17 @@ def upload_scheme():
 
             if not quiz_bundle:
                 continue
+
+            question_key = " ".join(quiz_bundle["question"].lower().split())
+            correct_key = quiz_bundle["correct"].strip().lower()
+
+            if question_key in seen_questions:
+                continue
+            if correct_key in seen_corrects:
+                continue
+
+            seen_questions.add(question_key)
+            seen_corrects.add(correct_key)
 
             distractors = quiz_bundle.get("distractors", [])
             if len(distractors) < 3:
@@ -870,15 +1044,28 @@ def student_assignments():
         lecturer_id=current_user.lecturer_id
     ).order_by(Assignment.due_date.asc()).all()
 
-    submission_map = {
-        s.assignment_id: s
-        for s in Submission.query.filter_by(student_id=current_user.student_id).all()
-    }
+    all_submissions = Submission.query.filter_by(
+        student_id=current_user.student_id
+    ).all()
+
+    submission_map = {s.assignment_id: s for s in all_submissions}
+
+    # Parse AI result JSON for criterion-level feedback
+    ai_result_map = {}
+    for sub in all_submissions:
+        parsed_result = None
+        if sub.ai_result_json:
+            try:
+                parsed_result = json.loads(sub.ai_result_json)
+            except Exception:
+                parsed_result = None
+        ai_result_map[sub.assignment_id] = parsed_result
 
     return render_template(
         "student_assignments.html",
         assignments=assignments,
-        submission_map=submission_map
+        submission_map=submission_map,
+        ai_result_map=ai_result_map
     )
 
 @app.route("/assignment/<int:assignment_id>/submissions")
@@ -931,14 +1118,10 @@ def evaluate_submission_route(submission_id):
     model_answer_pdf_path = os.path.join("static", assignment.answer_scheme_path)
 
     try:
-        print("DEBUG student_pdf_path:", student_pdf_path)
-        print("DEBUG rubric_xlsx_path:", rubric_xlsx_path)
-        print("DEBUG model_answer_pdf_path:", model_answer_pdf_path)
-
         result = evaluate_submission(
             student_pdf_path=student_pdf_path,
-            model_answer_pdf_path=model_answer_pdf_path,
             rubric_xlsx_path=rubric_xlsx_path,
+            reference_pdf_paths=[model_answer_pdf_path],
         )
 
         SubmissionCriterionScore.query.filter_by(
@@ -946,25 +1129,44 @@ def evaluate_submission_route(submission_id):
         ).delete()
 
         for row in result["criteria_results"]:
+            reference_chunks_flat = []
+
+            for group in row.get("reference_chunks", []):
+                if isinstance(group, list):
+                    reference_chunks_flat.extend(group)
+                elif isinstance(group, str):
+                    reference_chunks_flat.append(group)
+
             db.session.add(SubmissionCriterionScore(
                 submission_id=submission.submission_id,
-                criterion_name=row["criterion_name"],
-                section_name=row["section_name"],
-                weight=row["weight"],
-                max_scale=row["max_scale"],
-                semantic_similarity=row["semantic_similarity"],
-                keyword_coverage=row["keyword_coverage"],
-                structure_score=row["structure_score"],
-                raw_score=row["raw_score"],
-                weighted_score=row["weighted_score"],
-                feedback=row["feedback"],
-                model_chunk_text="\n\n".join(row.get("model_chunks", [])),
+                criterion_name=row.get("criterion_name", "Unknown Criterion"),
+                section_name="Hybrid rubric semantic scoring",
+                weight=row.get("weight", 0.0),
+                max_scale=row.get("max_scale", 0.0),
+
+                # Mapping new evaluator fields into existing DB columns
+                semantic_similarity=row.get("best_reference_similarity", 0.0),
+                keyword_coverage=row.get("optional_term_coverage", 0.0),
+                structure_score=row.get("breadth_score", 0.0),
+
+                raw_score=row.get("raw_score", 0.0),
+                weighted_score=row.get("weighted_score", 0.0),
+                feedback=row.get("feedback", ""),
+
+                model_chunk_text="\n\n".join(reference_chunks_flat),
                 student_chunk_text="\n\n".join(row.get("student_chunks", [])),
             ))
 
-        submission.ai_total_score = result["final_score"]
+        submission.ai_total_score = result.get("final_score")
+        submission.reference_quality_score = result.get("reference_quality_score")
+        submission.ai_result_json = json.dumps(result)
         submission.ai_status = "Evaluated"
-        submission.ai_feedback = f"AI evaluated successfully. Final score: {result['final_score']}%"
+        submission.ai_feedback = (
+            f"AI evaluated successfully. "
+            f"Final={result.get('final_score', 0)}%, "
+            f"Content={result.get('final_content_score', 0)}%, "
+            f"Reference={result.get('reference_quality_score', 0)}%."
+        )
 
         db.session.commit()
         flash("Submission evaluated successfully.")
@@ -1039,12 +1241,19 @@ def submission_breakdown(submission_id):
     scores = SubmissionCriterionScore.query.filter_by(
         submission_id=submission.submission_id
     ).all()
+    
+    ai_result = {}
+    try:
+        ai_result = json.loads(submission.ai_result_json) if submission.ai_result_json else {}
+    except Exception:
+        ai_result = {}
 
     return render_template(
         "submission_breakdown.html",
         submission=submission,
         assignment=assignment,
-        scores=scores
+        scores=scores,
+        ai_result=ai_result,
     )
 
 @app.route("/student/submission/<int:assignment_id>/result")
