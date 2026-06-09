@@ -54,6 +54,20 @@
             margin-bottom: 20px; 
             display: inline-block; 
         }
+
+        .source-box {
+            background: #faf8fd;
+            border: 1px solid #e5dff0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin: 14px 0 20px;
+            color: #333;
+        }
+
+        .source-box ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -66,6 +80,17 @@
             <h1><i class="fas fa-robot"></i> Review AI-Generated Quiz</h1>
             <p><b>Quiz Title:</b> {{ quiz.title }}</p>
             <hr>
+
+            {% if source_files %}
+            <div class="source-box">
+                <b>Source PDFs Used:</b>
+                <ul>
+                    {% for file in source_files %}
+                        <li>{{ file }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
             <!-- ONE form for saving all edits -->
             <form action="{{ url_for('save_quiz_review', quiz_id=quiz.quiz_id) }}" method="POST">

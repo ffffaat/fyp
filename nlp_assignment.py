@@ -17,6 +17,7 @@ except Exception:
 # =========================================================
 # TEXT UTILITIES
 # =========================================================
+# Cleans raw extracted text by removing links, emails, symbols, and extra spacing.
 def clean_text(text: str) -> str:
     if not text:
         return ""
@@ -27,18 +28,18 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
-
+# Converts text into lowercase normalized form for easier matching.
 def normalize_text(text: str) -> str:
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
-
+# Cleans and normalizes a single line of text.
 def normalize_line(line: str) -> str:
     return normalize_text(clean_text(line))
 
-
+# Extracts readable text from all pages of a PDF file.
 def extract_pdf_text(pdf_path: str) -> str:
     reader = PdfReader(pdf_path, strict=False)
     page_texts = []
@@ -47,7 +48,6 @@ def extract_pdf_text(pdf_path: str) -> str:
         if t.strip():
             page_texts.append(t)
     return "\n\n".join(page_texts)
-
 
 # =========================================================
 # NOISE REMOVAL
@@ -74,7 +74,7 @@ TOC_HINTS = [
     "table of contents", "table of content", "list of figures", "list of tables", "contents"
 ]
 
-
+# Detects whether a line is likely part of the table of contents
 def is_toc_line(line: str) -> bool:
     low = line.lower()
     if any(h in low for h in TOC_HINTS):
@@ -87,7 +87,7 @@ def is_toc_line(line: str) -> bool:
         return True
     return False
 
-
+# Detects noisy lines such as headers, footers, page numbers, and repeated labels.
 def is_noise_line(line: str) -> bool:
     low = normalize_line(line)
     if not low:
@@ -101,7 +101,7 @@ def is_noise_line(line: str) -> bool:
             return True
     return False
 
-
+# Removes unnecessary header, footer, and repeated noise from extracted text.
 def remove_noise(text: str) -> str:
     text = text.replace("\r", "\n")
     raw_lines = [ln.strip() for ln in text.split("\n")]
@@ -128,7 +128,7 @@ def remove_noise(text: str) -> str:
     text = re.sub(r"\n{3,}", "\n\n", text)
     return clean_text(text)
 
-
+# Removes front matter and starts the text from the main report content.
 def strip_front_matter(text: str) -> str:
     lower = text.lower()
     patterns = [
@@ -150,6 +150,7 @@ def strip_front_matter(text: str) -> str:
 # =========================================================
 # RUBRIC PARSING
 # =========================================================
+# Reads rubric criteria, weight, and scale from the uploaded Excel rubric file.
 def parse_rubric_xlsx(rubric_path: str) -> List[Dict]:
     if not rubric_path.lower().endswith((".xlsx", ".xlsm", ".xltx", ".xltm")):
         raise ValueError("Rubric file must be Excel format.")
@@ -172,6 +173,7 @@ def parse_rubric_xlsx(rubric_path: str) -> List[Dict]:
                 max_scale_val = float(max_scale)
             except Exception:
                 continue
+            
             criteria.append({
                 "criterion_name": crit,
                 "weight": weight_val,
@@ -180,12 +182,13 @@ def parse_rubric_xlsx(rubric_path: str) -> List[Dict]:
 
     if not criteria:
         raise ValueError("No rubric criteria found.")
+    
     return criteria
-
 
 # =========================================================
 # SEMANTIC SCORING
 # =========================================================
+# Calculates semantic similarity between two text passages. Uses SBERT if available, otherwise falls back to TF-IDF cosine similarity.
 def semantic_similarity(a: str, b: str) -> float:
     if not a.strip() or not b.strip():
         return 0.0
@@ -198,7 +201,7 @@ def semantic_similarity(a: str, b: str) -> float:
     X = vect.fit_transform([a, b])
     return max(0.0, float(cosine_similarity(X[0:1], X[1:2])[0][0]))
 
-
+# Calculates how many required concept terms appear in the student text.
 def keyword_coverage(student_text: str, concept_terms: List[str]) -> float:
     if not concept_terms:
         return 0.0
@@ -210,11 +213,10 @@ def keyword_coverage(student_text: str, concept_terms: List[str]) -> float:
             hits += 1
     return hits / len(concept_terms)
 
-
+# Counts the number of exact term matches found in the text.
 def exact_term_hits(text: str, terms: List[str]) -> int:
     t = normalize_text(text)
     return sum(1 for term in terms if normalize_text(term) and normalize_text(term) in t)
-
 
 # =========================================================
 # SECTION DETECTION / PROFILES
@@ -227,6 +229,104 @@ class CriterionProfile:
     section_aliases: List[str] = field(default_factory=list)
     score_mode: str = "semantic"
 
+# =========================================================
+# CRITERION NAME NORMALIZATION
+# =========================================================
+CRITERION_NAME_ALIASES: Dict[str, List[str]] = {
+    "Abstract, Intro & Background": [
+        "abstract, intro & background", "abstract", "introduction",
+        "background", "introduction and background", "abstract introduction and background",
+        "introduction & background", "problem statement", "project background",
+        "big picture", "real world problem", "overview and background",
+        "introduction and overview", "context and background", "motivation and background",
+        "problem and motivation", "dataset description and preparation", "background and dataset description",
+        "introduction background and dataset", "project objectives", "project objective",
+    ],
+
+    "Data & Task Abstraction": [
+        "data & task abstraction", "data abstraction", "task abstraction",
+        "data and task abstraction", "data/task abstraction", "dataset abstraction",
+        "data analysis task", "task analysis", "analytical tasks",
+        "what and why", "munzner abstraction", "data types and tasks", 
+        "dataset types and task abstraction", "data abstraction and task analysis", "what why abstraction",
+        "data description and task abstraction", "dataset structure and tasks", "data understanding and task analysis",
+    ],
+
+    "Methods & Tools for Data Storytelling": [
+        "methods & tools for data storytelling", "methods and tools for data storytelling", "methods & tools",
+        "methods and tools", "tools and methods", "methodology and tools",
+        "design choice and visual encoding", "visual encoding and design choice", "design justification",
+        "visual design justification", "implementation and tools", "tools used",
+        "software and methods", "storytelling approach", "data storytelling approach",
+        "design and implementation", "methods tools and storytelling", "design choice & encoding",
+        "design choice and encoding", "visual mapping and tools",
+    ],
+
+    "Methods & Tools": [
+        "methods & tools", "methods and tools", "tools and methods",
+        "methodology", "methods", "tools", "implementation",
+        "implementation details", "software used", "workflow", "analysis workflow",
+        "preprocessing and tools", "data preparation and tools",
+    ],
+
+    "Related Work": [
+        "related work", "literature review", "review of literature", "previous studies",
+        "prior work", "related studies", "research background", "research context", "comparison with existing work",
+        "existing studies", "state of the art", "related literature",
+    ],
+
+    "Discussion and Conclusion": [
+        "discussion and conclusion", "discussion", "conclusion", "summary and conclusion",
+        "discussion, limitation and conclusion", "discussion and findings", "findings and conclusion",
+        "results and discussion", "discussion results and conclusion", "critical reflection",
+        "reflection and conclusion", "limitations and future work", "conclusion and future work",
+        "findings limitations and future work", "final discussion", "discussion and limitations", "reflection",
+    ],
+
+    "References": [
+        "references", "reference", "reference list", "bibliography",
+        "works cited", "citations", "sources", "list of references",
+    ],
+
+    "Vis Tool Project File & Datasets": [
+        "vis tool project file & datasets", "vis tool project file and datasets", "project file and datasets",
+        "visualization tool project file and datasets", "visualisation tool project file and datasets", "submission package",
+        "dataset and project file", "project files", "dataset files", "tool and dataset files",
+        "data source and project file", "files and datasets", "appendix project files",
+    ],
+
+    "Visual Analytics": [
+        "visual analytics", "interactive visual analytics", "visual analysis", "dashboard design",
+        "visualization design", "visualisation design", "dashboard and interaction", "interactive dashboard design",
+        "interaction design", "visual encoding and analytics", "analytics strategy", "exploratory visual analysis",
+        "visual design", "dashboard analysis", "interactive dashboard",
+    ],
+
+    "Future Improvement": [
+        "future improvement", "future improvements", "future work", "recommendations",
+        "recommendation", "future direction", "next steps", "improvements and future work",
+    ],
+}
+
+# Normalizes different rubric criterion names into standard internal names.
+def normalize_criterion_name(raw_name: str) -> str:
+    if not raw_name:
+        return raw_name
+
+    norm = re.sub(r"\s+", " ", raw_name.strip().lower())
+
+    for canonical_name, aliases in CRITERION_NAME_ALIASES.items():
+        alias_norms = [re.sub(r"\s+", " ", a.strip().lower()) for a in aliases]
+        if norm in alias_norms:
+            return canonical_name
+
+    for canonical_name, aliases in CRITERION_NAME_ALIASES.items():
+        alias_norms = [re.sub(r"\s+", " ", a.strip().lower()) for a in aliases]
+        for alias in alias_norms:
+            if alias in norm or norm in alias:
+                return canonical_name
+
+    return raw_name
 
 DEFAULT_PROFILES: Dict[str, CriterionProfile] = {
     "Abstract, Intro & Background": CriterionProfile(
@@ -305,13 +405,6 @@ DEFAULT_PROFILES: Dict[str, CriterionProfile] = {
         section_aliases=["references", "bibliography", "works cited"],
         score_mode="references",
     ),
-    "Writing Style": CriterionProfile(
-        name="Writing Style",
-        concept_groups=[],
-        optional_terms=["clarity", "coherence", "grammar"],
-        section_aliases=[],
-        score_mode="writing",
-    ),
     "Vis Tool Project File & Datasets": CriterionProfile(
         name="Vis Tool Project File & Datasets",
         concept_groups=[
@@ -334,12 +427,26 @@ DEFAULT_PROFILES: Dict[str, CriterionProfile] = {
         section_aliases=["visual analytics", "design justification", "visual encoding", "interaction design", "visual encoding and analytics", "analytics strategy"],
         score_mode="semantic",
     ),
+    "Future Improvement": CriterionProfile(
+        name="Future Improvement",
+        concept_groups=[
+            ["future", "future work", "future improvement", "enhancement"],
+            ["recommendation", "improve", "extension"],
+            ["limitation", "constraint", "weakness"],
+        ],
+        optional_terms=["next step", "improvement", "further study", "future direction"],
+        section_aliases=["future improvement", "future improvements", "future work", "recommendation", "next steps"],
+        score_mode="semantic",
+    ),
 }
 
-
+# Retrieves the scoring profile for a rubric criterion.
 def resolve_profile(criterion_name: str) -> CriterionProfile:
+    criterion_name = normalize_criterion_name(criterion_name)
+
     if criterion_name in DEFAULT_PROFILES:
         return DEFAULT_PROFILES[criterion_name]
+
     generic_terms = [w for w in re.split(r"\W+", criterion_name.lower()) if len(w) > 3]
     return CriterionProfile(
         name=criterion_name,
@@ -349,7 +456,7 @@ def resolve_profile(criterion_name: str) -> CriterionProfile:
         score_mode="semantic",
     )
 
-
+# Detects whether a line is likely to be a section heading.
 def is_heading_line(line: str) -> bool:
     s = clean_text(line)
     if not s:
@@ -368,13 +475,13 @@ def is_heading_line(line: str) -> bool:
     ]
     return any(hw == low or low.startswith(hw) for hw in heading_words)
 
-
+# Converts a heading line into a normalized section title.
 def canonical_heading(line: str) -> str:
     s = clean_text(line)
     s = re.sub(r"^\d+(\.\d+)*\s*", "", s)
     return normalize_text(s)
 
-
+# Extracts report sections based on detected headings.
 def extract_sections(text: str) -> Dict[str, str]:
     text = remove_noise(text)
     text = strip_front_matter(text)
@@ -390,7 +497,7 @@ def extract_sections(text: str) -> Dict[str, str]:
         sections.setdefault(current, []).append(ln)
     return {k: clean_text("\n".join(v)) for k, v in sections.items() if clean_text("\n".join(v))}
 
-
+# Selects the most relevant report section for a criterion.
 def best_section_text(sections: Dict[str, str], profile: CriterionProfile, fallback_full_text: str) -> Tuple[str, float, List[str]]:
     if not sections:
         return fallback_full_text, 0.2, []
@@ -405,7 +512,7 @@ def best_section_text(sections: Dict[str, str], profile: CriterionProfile, fallb
         norm_title = normalize_text(title)
         title_hits = sum(1 for alias in alias_terms if normalize_text(alias) and normalize_text(alias) in norm_title)
         body_score = keyword_coverage(body, body_probe_terms)
-        combined = (0.70 * min(title_hits, 3) / 3.0) + (0.30 * body_score)
+        combined = (0.50 * min(title_hits, 3) / 3.0) + (0.50 * body_score)
         candidates.append((title, body, combined))
 
     if not candidates:
@@ -415,7 +522,6 @@ def best_section_text(sections: Dict[str, str], profile: CriterionProfile, fallb
     top = candidates[:2]
     best_conf = top[0][2]
 
-    # softer fallback: if too strict, return full cleaned text with low confidence rather than empty sections
     if best_conf < 0.55:
         return fallback_full_text, round(best_conf, 3), ["full document fallback"]
 
@@ -423,10 +529,10 @@ def best_section_text(sections: Dict[str, str], profile: CriterionProfile, fallb
     titles = [t[0] for t in top]
     return merged if merged.strip() else fallback_full_text, round(best_conf, 3), titles
 
-
 # =========================================================
 # CHUNKING / RETRIEVAL
 # =========================================================
+# Splits long text into smaller chunks for retrieval and scoring.
 def split_into_chunks(text: str, max_words: int = 90) -> List[str]:
     text = text.replace("\r", "\n")
     paras = [clean_text(p) for p in re.split(r"\n\s*\n+", text) if clean_text(p)]
@@ -454,7 +560,7 @@ def split_into_chunks(text: str, max_words: int = 90) -> List[str]:
                 final_chunks.append(" ".join(words[i:i + max_words]))
     return final_chunks
 
-
+# Applies penalty to chunks that contain mixed or irrelevant sections.
 def mixed_section_penalty(chunk: str) -> float:
     low = normalize_text(chunk)
     foreign_heads = [
@@ -467,13 +573,13 @@ def mixed_section_penalty(chunk: str) -> float:
         return 0.85
     return 1.0
 
-
+# Builds a search query from the criterion profile.
 def build_query(profile: CriterionProfile, criterion_name: str) -> Tuple[str, List[str]]:
     terms = [criterion_name] + [term for grp in profile.concept_groups for term in grp[:2]] + profile.optional_terms + profile.section_aliases
     terms = [t for t in terms if t]
     return " ".join(terms), terms
 
-
+# Retrieves the most relevant chunks for the selected criterion.
 def retrieve_top_chunks(query: str, query_terms: List[str], chunks: List[str], top_k: int = 3) -> List[str]:
     if not chunks:
         return []
@@ -489,10 +595,10 @@ def retrieve_top_chunks(query: str, query_terms: List[str], chunks: List[str], t
     top = [chunk for chunk, _ in scored[:top_k] if chunk.strip()]
     return top or chunks[:top_k]
 
-
 # =========================================================
 # FEATURE SCORING
 # =========================================================
+# Measures how many concept groups are covered in the student text.
 def concept_group_coverage(text: str, concept_groups: List[List[str]]) -> Tuple[float, List[Dict]]:
     text_n = normalize_text(text)
     if not concept_groups:
@@ -513,7 +619,7 @@ def concept_group_coverage(text: str, concept_groups: List[List[str]]) -> Tuple[
         details.append({"group": group, "matched": group_hit, "matched_term": matched_term})
     return matched_groups / len(concept_groups), details
 
-
+# Scores the breadth of explanation based on text length.
 def breadth_score(student_text: str) -> float:
     n = len(student_text.split())
     if n >= 220:
@@ -526,7 +632,7 @@ def breadth_score(student_text: str) -> float:
         return 0.50
     return 0.25
 
-
+# Scores whether the text contains evidence or analytical indicators.
 def evidence_score(student_text: str) -> float:
     text_n = normalize_text(student_text)
     indicators = [
@@ -535,7 +641,6 @@ def evidence_score(student_text: str) -> float:
     ]
     hits = sum(1 for s in indicators if s in text_n)
     return min(1.0, hits / 5)
-
 
 # =========================================================
 # REFERENCE QUALITY CHECKER
@@ -557,7 +662,7 @@ IN_TEXT_CITATION_PATTERNS = [
     r"[A-Z][A-Za-z\-]+\s*\(\d{4}\)",
 ]
 
-
+# Extracts the reference section from the full student report.
 def extract_reference_section(full_text: str) -> str:
     lower = full_text.lower()
     positions = []
@@ -567,27 +672,91 @@ def extract_reference_section(full_text: str) -> str:
             positions.append(m.start())
     return full_text[min(positions):] if positions else ""
 
+# Detects whether a line is likely the start of a reference entry.
+def is_likely_reference_start(line: str) -> bool:
+    line = line.strip()
 
+    if not line:
+        return False
+
+    if re.match(r"^(\[\d+\]|\d+\.)\s+", line):
+        return True
+
+    if re.match(r"^[A-Z][A-Za-z\-']+,\s+[A-Z]\.", line):
+        return True
+
+    if re.match(r"^[A-Z][A-Za-z\-']+(?:\s+[A-Z][A-Za-z\-']+){1,3},", line):
+        return True
+
+    if re.match(r"^[A-Z][A-Za-z\-']+,\s+[A-Z]\..*&", line):
+        return True
+
+    return False
+
+# Checks whether the current reference buffer contains a publication year.
+def buffer_has_reference_year(buffer_lines: List[str]) -> bool:
+    joined = " ".join(buffer_lines)
+    return bool(re.search(r"\(\d{4}\)|\b(19|20)\d{2}\b", joined))
+
+# Splits the reference section into individual reference entries.
 def split_reference_entries(reference_section: str) -> List[str]:
     if not reference_section:
         return []
+
     ref_section = remove_noise(reference_section)
+
+    ref_section = re.sub(
+        r"^\s*(references|bibliography|works cited)\s*",
+        "",
+        ref_section,
+        flags=re.I
+    ).strip()
+
     lines = [ln.strip() for ln in ref_section.split("\n") if ln.strip()]
-    lines = [x for x in lines if normalize_text(x) not in {"references", "bibliography", "works cited"}]
 
     entries = []
-    buf = []
+    buffer = []
+
     for line in lines:
-        if re.match(r"^(\[\d+\]|\d+\.|[A-Z][a-zA-Z\-]+,\s*[A-Z])", line) and buf:
-            entries.append(" ".join(buf))
-            buf = [line]
+        clean_line = clean_text(line)
+
+        if not clean_line:
+            continue
+
+        if normalize_text(clean_line) in {"references", "bibliography", "works cited"}:
+            continue
+
+        starts_new = is_likely_reference_start(clean_line)
+
+        if starts_new and buffer and buffer_has_reference_year(buffer):
+            entries.append(clean_text(" ".join(buffer)))
+            buffer = [clean_line]
         else:
-            buf.append(line)
-    if buf:
-        entries.append(" ".join(buf))
-    return [clean_text(e) for e in entries if clean_text(e)]
+            buffer.append(clean_line)
 
+    if buffer:
+        entries.append(clean_text(" ".join(buffer)))
 
+    final_entries = []
+    seen = set()
+
+    for entry in entries:
+        entry = clean_text(entry)
+
+        if not re.search(r"\(\d{4}\)|\b(19|20)\d{2}\b", entry):
+            continue
+
+        if len(entry.split()) < 8:
+            continue
+
+        key = normalize_text(entry[:160])
+        if key not in seen:
+            seen.add(key)
+            final_entries.append(entry)
+
+    return final_entries
+
+# Scores one reference entry based on author, year, title, DOI/link, and source quality.
 def score_reference_entry(entry: str, current_year: int = 2026) -> Dict:
     e_low = entry.lower()
     score = 0.0
@@ -625,15 +794,52 @@ def score_reference_entry(entry: str, current_year: int = 2026) -> Dict:
     label = "high" if score >= 0.75 else "moderate" if score >= 0.45 else "low"
     return {"entry": entry, "score": round(score, 3), "label": label, "reasons": reasons}
 
+# Extracts short text snippets containing in-text citations.
+def extract_citation_snippets(full_text: str, window: int = 60) -> List[str]:
+    snippets = []
 
+    for pat in IN_TEXT_CITATION_PATTERNS:
+        for m in re.finditer(pat, full_text):
+            start = max(0, m.start() - window)
+            end = min(len(full_text), m.end() + window)
+
+            snippet = full_text[start:end].strip().replace("\n", " ")
+            citation = m.group(0)
+            highlighted = snippet.replace(
+                citation,
+                f"<mark>{citation}</mark>"
+            )
+            snippets.append(highlighted)
+
+    seen = set()
+    unique_snippets = []
+    for s in snippets:
+        if s not in seen:
+            seen.add(s)
+            unique_snippets.append(s)
+
+    return unique_snippets[:10]
+
+# Evaluates the overall reference quality of the student report.
 def evaluate_references(full_text: str) -> Dict:
     ref_section = extract_reference_section(full_text)
     entries = split_reference_entries(ref_section)
     entry_scores = [score_reference_entry(e) for e in entries]
 
-    in_text_count = 0
+    citation_matches = []
     for pat in IN_TEXT_CITATION_PATTERNS:
-        in_text_count += len(re.findall(pat, full_text))
+        found = re.findall(pat, full_text)
+        if found:
+            citation_matches.extend(found)
+
+    seen = set()
+    unique_citations = []
+    for c in citation_matches:
+        if c not in seen:
+            seen.add(c)
+            unique_citations.append(c)
+
+    in_text_count = len(citation_matches)
 
     avg_quality = sum(x["score"] for x in entry_scores) / len(entry_scores) if entry_scores else 0.0
     weak_count = sum(1 for x in entry_scores if x["label"] == "low")
@@ -643,7 +849,9 @@ def evaluate_references(full_text: str) -> Dict:
 
     return {
         "reference_entries_found": len(entries),
+        "in_text_citation_snippets": extract_citation_snippets(full_text),
         "in_text_citations_found": in_text_count,
+        "in_text_citation_examples": unique_citations[:20],
         "average_reference_quality": round(avg_quality, 3),
         "citation_alignment": round(citation_alignment, 3),
         "weak_reference_count": weak_count,
@@ -652,10 +860,10 @@ def evaluate_references(full_text: str) -> Dict:
         "reference_details": entry_scores,
     }
 
-
 # =========================================================
 # CRITERION SCORING
 # =========================================================
+# Scores writing style based on coherence, repetition, and breadth.
 def writing_style_score(text: str, max_scale: float) -> Dict:
     sentences = [s.strip() for s in re.split(r"[.!?]+", text) if s.strip()]
     words = text.split()
@@ -679,7 +887,7 @@ def writing_style_score(text: str, max_scale: float) -> Dict:
         "retrieval_confidence": 1.0,
     }
 
-
+# Scores the reference criterion independently from the model answer.
 def references_criterion_score(full_student_text: str, max_scale: float) -> Tuple[Dict, Dict]:
     ref = evaluate_references(full_student_text)
     raw = round(ref["overall_reference_score"] * max_scale, 2)
@@ -696,7 +904,7 @@ def references_criterion_score(full_student_text: str, max_scale: float) -> Tupl
     }
     return metrics, ref
 
-
+# Calculates a blended criterion score using similarity, coverage, breadth, and evidence.
 def blended_criterion_score(student_text: str, reference_texts: List[str], profile: CriterionProfile, max_scale: float, retrieval_confidence: float) -> Dict:
     student_text = clean_text(student_text)
     merged_reference = " ".join([clean_text(t) for t in reference_texts if clean_text(t)])
@@ -711,12 +919,12 @@ def blended_criterion_score(student_text: str, reference_texts: List[str], profi
     evidence = evidence_score(student_text)
 
     blended = (
-        0.28 * best_reference_similarity +
-        0.17 * aggregate_similarity +
-        0.25 * concept_cov +
-        0.12 * optional_cov +
-        0.10 * breadth +
-        0.08 * evidence
+        0.2 * best_reference_similarity +
+        0.2 * aggregate_similarity +
+        0.3 * concept_cov +
+        0.1 * optional_cov +
+        0.1 * breadth +
+        0.1 * evidence
     )
     blended *= max(0.60, min(1.0, 0.65 + 0.35 * retrieval_confidence))
     raw_score = round(blended * max_scale, 2)
@@ -733,7 +941,7 @@ def blended_criterion_score(student_text: str, reference_texts: List[str], profi
         "retrieval_confidence": round(retrieval_confidence, 4),
     }
 
-
+# Builds short AI feedback for each rubric criterion.
 def build_feedback(criterion_name: str, metrics: Dict, max_scale: float, section_titles: List[str]) -> str:
     score = metrics["raw_score"]
     if score >= max_scale * 0.85:
@@ -764,6 +972,7 @@ def build_feedback(criterion_name: str, metrics: Dict, max_scale: float, section
 # =========================================================
 # MAIN PIPELINE
 # =========================================================
+# Main pipeline that evaluates a student submission using rubric and reference answer files.
 def evaluate_submission(student_pdf_path: str, rubric_xlsx_path: str, reference_pdf_paths: list[str]) -> dict:
     print("USING CHUNK TUNED NLP_ASSIGNMENT")
     if not os.path.exists(student_pdf_path):
@@ -795,7 +1004,8 @@ def evaluate_submission(student_pdf_path: str, rubric_xlsx_path: str, reference_
     references_report = evaluate_references(student_text)
 
     for item in rubric_items:
-        criterion_name = item["criterion_name"]
+        criterion_name_raw = item["criterion_name"]
+        criterion_name = normalize_criterion_name(criterion_name_raw)
         weight = item["weight"]
         max_scale = item["max_scale"]
         profile = resolve_profile(criterion_name)
@@ -803,7 +1013,6 @@ def evaluate_submission(student_pdf_path: str, rubric_xlsx_path: str, reference_
 
         selected_student_section_text, retrieval_conf, used_student_titles = best_section_text(student_sections, profile, student_text)
 
-        # stricter fallbacks only for a few criteria, but keep semantic fallback instead of empty
         if criterion_name in {"Related Work", "Abstract, Intro & Background", "Visual Analytics"} and retrieval_conf < 0.52:
             selected_student_section_text = student_text
             used_student_titles = ["full document fallback"]
@@ -870,7 +1079,8 @@ def evaluate_submission(student_pdf_path: str, rubric_xlsx_path: str, reference_
             feedback = build_feedback(criterion_name, metric_result, max_scale, used_student_titles)
 
         results.append({
-            "criterion_name": criterion_name,
+            "criterion_name": criterion_name,              
+            "criterion_name_raw": criterion_name_raw,      
             "weight": weight,
             "max_scale": max_scale,
             "raw_score": metric_result["raw_score"],
@@ -887,7 +1097,7 @@ def evaluate_submission(student_pdf_path: str, rubric_xlsx_path: str, reference_
 
     final_content_score = round((total_weighted_score / total_weight) * 100, 2)
     reference_quality_score = round(references_report["overall_reference_score"] * 100, 2)
-    final_score = round((0.85 * final_content_score) + (0.15 * reference_quality_score), 2)
+    final_score = round((0.9 * final_content_score) + (0.1 * reference_quality_score), 2)
 
     return {
         "final_score": final_score,

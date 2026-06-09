@@ -16,6 +16,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 app/ml_models/
-data/qg/
-data/dg/
-data/expl/
+data/
+scripts/
+static/uploads/

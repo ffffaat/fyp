@@ -172,6 +172,131 @@
         }
         
         .btn-delete:hover { transform: scale(1.1); }
+
+        .upload-card {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            border-top: 4px solid var(--usm-purple);
+            box-shadow: 0 8px 24px rgba(90, 45, 129, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .upload-header h2 {
+            margin: 0 0 8px;
+            color: var(--usm-purple);
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .upload-header h2 i {
+            margin-right: 8px;
+        }
+
+        .upload-header p {
+            margin: 0 0 24px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #222;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .file-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .file-card:hover {
+            border-color: #d6c4e8;
+            background: #fcf9ff;
+        }
+
+        .file-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.55rem;
+            flex-shrink: 0;
+        }
+
+        .file-icon.csv {
+            background: #e9f7ef;
+            color: #28a745;
+        }
+
+        .file-content {
+            width: 100%;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: var(--usm-purple);
+            box-shadow: 0 0 0 3px rgba(90, 45, 129, 0.12);
+        }
+
+        .file-content small {
+            display: block;
+            margin-top: 7px;
+            color: #666;
+            font-size: 0.83rem;
+        }
+
+        .generate-btn {
+            margin-top: 6px;
+            padding: 13px 24px;
+            background: var(--usm-purple);
+            color: #fff;
+            border: none;
+            border-radius: 11px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.24);
+            transition: all 0.25s ease;
+        }
+
+        .generate-btn:hover {
+            background: #482468;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(90, 45, 129, 0.32);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+}
     </style>
 </head>
 
@@ -209,14 +334,39 @@
               {% endif %}
             {% endwith %}
 
-            <div class="card">
-                <h3 style="margin-top:0; color:var(--usm-purple);">Upload File(CSV only)</h3>
-                <form action="{{ url_for('enroll_students') }}" method="POST" enctype="multipart/form-data">
-                    <div class="upload-area">
-                        <i class="fas fa-file-csv" style="font-size: 2rem; color: #ccc; margin-bottom:10px;"></i><br>
-                        <input type="file" name="file" accept=".csv" required>
+            <div class="upload-card">
+                <div class="upload-header">
+                    <div>
+                        <h2><i class="fas fa-user-plus"></i> Upload Student List</h2>
                     </div>
-                    <button type="submit" class="btn-submit">Import CSV</button>
+                </div>
+
+                <form action="{{ url_for('enroll_students') }}" method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">Upload CSV File</label>
+
+                        <div class="file-card">
+                            <div class="file-icon csv">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+
+                            <div class="file-content">
+                                <input 
+                                    type="file" 
+                                    id="file" 
+                                    name="file" 
+                                    accept=".csv"
+                                    class="file-input"
+                                    required>
+                                <small>Please upload a CSV file containing student name, matrix number, and email.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn">
+                        <i class="fas fa-upload"></i>
+                        Import CSV
+                    </button>
                 </form>
             </div>
 

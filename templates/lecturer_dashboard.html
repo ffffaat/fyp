@@ -254,6 +254,29 @@
             padding: 18px;
         }
 
+        .dashboard-select {
+            width: 100%;
+            max-width: 320px;
+            padding: 10px 12px;
+            border: 1px solid #d7cfe3;
+            border-radius: 10px;
+            background: #fff;
+            color: #333;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .dashboard-select:focus {
+            border-color: #5a2d81;
+            box-shadow: 0 0 0 3px rgba(90, 45, 129, 0.10);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         @media (max-width: 980px) {
             .charts-grid {
                 grid-template-columns: 1fr;
@@ -284,22 +307,12 @@
         </div>
 
         <nav>
-            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link active">
-                <i class="fas fa-th-large"></i> Dashboard
-            </a>
-            <a href="{{ url_for('enroll_students') }}" class="nav-link">
-                <i class="fas fa-user-plus"></i> Student Enrollment
-            </a>
-            <a href="{{ url_for('assignment_management') }}" class="nav-link">
-                <i class="fas fa-file-invoice"></i> Assignment Management
-            </a>
-            <a href="{{ url_for('quiz_management') }}" class="nav-link">
-                <i class="fas fa-tasks"></i> Quiz Management
-            </a>
+            <a href="{{ url_for('lecturer_dashboard') }}" class="nav-link active"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{{ url_for('enroll_students') }}" class="nav-link"><i class="fas fa-user-plus"></i> Student Enrollment</a>
+            <a href="{{ url_for('assignment_management') }}" class="nav-link"><i class="fas fa-file-invoice"></i> Assignment Management</a>
+            <a href="{{ url_for('quiz_management') }}" class="nav-link"><i class="fas fa-tasks"></i> Quiz Management</a>
             <hr>
-            <a href="{{ url_for('logout') }}" class="nav-link">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+            <a href="{{ url_for('logout') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>
     </div>
 
@@ -379,6 +392,49 @@
                         </div>
                     {% endif %}
                 </div>
+                <div class="performance-box">
+                    <h3><i class="fas fa-filter"></i> Assignment Performance by Selected Assignment</h3>
+
+                    {% if assignment_filter_options %}
+                        <div class="filter-row" style="margin-bottom: 14px;">
+                            <label for="assignmentFilter" style="font-weight:600; color:#5a2d81;">Select Assignment:</label>
+                            <select id="assignmentFilter" class="dashboard-select">
+                                {% for item in assignment_filter_options %}
+                                    <option value="{{ item.id }}">{{ item.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="chart-wrap">
+                            <canvas id="assignmentFilterChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No assignment data available for filtering yet.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="performance-box">
+                    <h3><i class="fas fa-filter"></i> Quiz Performance by Selected Quiz</h3>
+
+                    {% if quiz_filter_options %}
+                        <div class="filter-row" style="margin-bottom: 14px;">
+                            <label for="quizFilter" style="font-weight:600; color:#5a2d81;">Select Quiz:</label>
+                            <select id="quizFilter" class="dashboard-select">
+                                {% for item in quiz_filter_options %}
+                                    <option value="{{ item.id }}">{{ item.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="chart-wrap">
+                            <canvas id="quizFilterChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="empty-chart">
+                            No quiz data available for filtering yet.
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -394,6 +450,12 @@
     </script>
     <script id="quiz-values-data" type="application/json">
         {{ (quiz_chart_values or []) | tojson | safe }}
+    </script>
+    <script id="assignment-filter-map-data" type="application/json">
+    {{ (assignment_filter_map or {}) | tojson | safe }}
+    </script>
+    <script id="quiz-filter-map-data" type="application/json">
+        {{ (quiz_filter_map or {}) | tojson | safe }}
     </script>
 
     <script>
@@ -495,6 +557,133 @@
                         }
                     }
                 }
+            });
+        }
+    </script>
+    <script>
+        const assignmentFilterMap = JSON.parse(document.getElementById('assignment-filter-map-data').textContent);
+        const quizFilterMap = JSON.parse(document.getElementById('quiz-filter-map-data').textContent);
+
+        let assignmentFilterChartInstance = null;
+        let quizFilterChartInstance = null;
+
+        function renderAssignmentFilterChart(filterId) {
+            const canvas = document.getElementById('assignmentFilterChart');
+            if (!canvas || !assignmentFilterMap[filterId]) return;
+
+            const ctx = canvas.getContext('2d');
+            const chartData = assignmentFilterMap[filterId];
+
+            if (assignmentFilterChartInstance) {
+                assignmentFilterChartInstance.destroy();
+            }
+
+            assignmentFilterChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Student Score',
+                        data: chartData.values,
+                        backgroundColor: 'rgba(90, 45, 129, 0.75)',
+                        borderColor: '#5a2d81',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(255, 204, 0, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderQuizFilterChart(filterId) {
+            const canvas = document.getElementById('quizFilterChart');
+            if (!canvas || !quizFilterMap[filterId]) return;
+
+            const ctx = canvas.getContext('2d');
+            const chartData = quizFilterMap[filterId];
+
+            if (quizFilterChartInstance) {
+                quizFilterChartInstance.destroy();
+            }
+
+            quizFilterChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Student Score',
+                        data: chartData.values,
+                        backgroundColor: 'rgba(255, 204, 0, 0.75)',
+                        borderColor: '#d4a600',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(90, 45, 129, 0.85)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#555' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#555' },
+                            grid: { color: 'rgba(90,45,129,0.08)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        const assignmentFilter = document.getElementById('assignmentFilter');
+        if (assignmentFilter) {
+            renderAssignmentFilterChart(assignmentFilter.value);
+            assignmentFilter.addEventListener('change', function () {
+                renderAssignmentFilterChart(this.value);
+            });
+        }
+
+        const quizFilter = document.getElementById('quizFilter');
+        if (quizFilter) {
+            renderQuizFilterChart(quizFilter.value);
+            quizFilter.addEventListener('change', function () {
+                renderQuizFilterChart(this.value);
             });
         }
     </script>

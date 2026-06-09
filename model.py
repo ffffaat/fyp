@@ -1,7 +1,12 @@
-from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timezone, timedelta
+
+MALAYSIA_TZ = timezone(timedelta(hours=8))
+
+def malaysia_now():
+    return datetime.now(MALAYSIA_TZ).replace(tzinfo=None)
 
 db = SQLAlchemy()
 
@@ -62,7 +67,7 @@ class Assignment(db.Model):
     answer_scheme_path = db.Column(db.String(255), nullable=True)
     due_date = db.Column(db.DateTime, nullable=False)
     lecturer_id = db.Column(db.Integer, db.ForeignKey('lecturer.lecturer_id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=malaysia_now)
 
     submissions = db.relationship(
         "Submission",
@@ -89,13 +94,12 @@ class Submission(db.Model):
     )
 
     file_path = db.Column(db.String(255), nullable=False)
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=malaysia_now, nullable=False)
 
     ai_total_score = db.Column(db.Float, nullable=True)
     ai_status = db.Column(db.String(50), default="Not Evaluated")
     ai_feedback = db.Column(db.Text, nullable=True)
 
-    # New fields for improved AI assignment marking
     reference_quality_score = db.Column(db.Float, nullable=True)
     ai_result_json = db.Column(db.Text, nullable=True)
 
@@ -177,7 +181,7 @@ class Question(db.Model):
     distractor_3 = db.Column(db.String(255), nullable=False)
 
     explanation = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=malaysia_now)
 
     def __repr__(self):
         return f"<Question {self.question_id} quiz={self.quiz_id}>"
@@ -194,7 +198,7 @@ class QuizAttempt(db.Model):
     score = db.Column(db.Float, nullable=True)
     total = db.Column(db.Integer, nullable=True)
     percent = db.Column(db.Float, nullable=True)
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=malaysia_now, nullable=False)
 
     answers = db.relationship(
         'AttemptAnswer',

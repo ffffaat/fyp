@@ -215,6 +215,224 @@
             padding: 30px;
             color: #999;
         }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .label-row label {
+            margin-bottom: 0;
+        }
+
+        .template-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #f6f1fb;
+            color: var(--usm-purple);
+            border: 1px solid #ded0eb;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+
+        .template-btn:hover {
+            background: var(--usm-purple);
+            color: white;
+        }
+
+        .upload-hint {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .upload-card {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            border-top: 4px solid var(--usm-purple);
+            box-shadow: 0 8px 24px rgba(90, 45, 129, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .upload-header h2 {
+            margin: 0 0 8px;
+            color: var(--usm-purple);
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .upload-header h2 i {
+            margin-right: 8px;
+        }
+
+        .upload-header p {
+            margin: 0 0 24px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #222;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--usm-purple);
+            box-shadow: 0 0 0 3px rgba(90, 45, 129, 0.12);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .label-row label {
+            margin-bottom: 0;
+        }
+
+        .template-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #f6f1fb;
+            color: var(--usm-purple);
+            border: 1px solid #ded0eb;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+
+        .template-btn:hover {
+            background: var(--usm-purple);
+            color: white;
+        }
+
+        .file-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .file-card:hover {
+            border-color: #d6c4e8;
+            background: #fcf9ff;
+        }
+
+        .file-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.55rem;
+            flex-shrink: 0;
+        }
+
+        .file-icon.excel {
+            background: #e9f7ef;
+            color: #28a745;
+        }
+
+        .file-icon.pdf {
+            background: #fdecec;
+            color: #dc3545;
+        }
+
+        .file-content {
+            width: 100%;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .file-content small {
+            display: block;
+            margin-top: 7px;
+            color: #666;
+            font-size: 0.83rem;
+        }
+
+        .generate-btn {
+            margin-top: 6px;
+            padding: 13px 24px;
+            background: var(--usm-purple);
+            color: #fff;
+            border: none;
+            border-radius: 11px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.24);
+            transition: all 0.25s ease;
+        }
+
+        .generate-btn:hover {
+            background: #482468;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(90, 45, 129, 0.32);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -239,7 +457,6 @@
             <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <div>
                 <h1 style="margin: 0; color: #333;">Assignment Management</h1>
-                <p style="margin: 6px 0 0; color:#666;">Create assignments with instructions, rubric PDF, and due date.</p>
             </div>
         </div>
 
@@ -254,42 +471,98 @@
               {% endif %}
             {% endwith %}
 
-            <div class="card">
-                <h3 style="margin-top:0; color:var(--usm-purple);">Create New Assignment</h3>
+            <div class="upload-card">
+                <div class="upload-header">
+                    <div>
+                        <h2><i class="fas fa-file-invoice"></i> Create New Assignment</h2>
+                    </div>
+                </div>
 
                 <form action="{{ url_for('assignment_management') }}" method="POST" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="title">Assignment Title</label>
-                        <input type="text" id="title" name="title" class="form-control" placeholder="Enter assignment title" required>
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            class="form-control" 
+                            placeholder="Example: Data Visualization Report"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="instruction">Instructions</label>
-                        <textarea id="instruction" name="instruction" class="form-control" placeholder="Write assignment instructions here..."></textarea>
+                        <textarea 
+                            id="instruction" 
+                            name="instruction" 
+                            class="form-control" 
+                            placeholder="Write assignment instructions here..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="due_date">Due Date</label>
-                        <input type="datetime-local" id="due_date" name="due_date" class="form-control" required>
+                        <input 
+                            type="datetime-local" 
+                            id="due_date" 
+                            name="due_date" 
+                            class="form-control" 
+                            required>
                     </div>
 
                     <div class="form-group">
-                        <label for="rubric_file">Upload Rubric File (.xlsx)</label>
-                        <div class="upload-area">
-                            <i class="fas fa-file-excel" style="font-size: 2rem; color: #ccc; margin-bottom:10px;"></i><br>
-                            <input type="file" id="rubric_file" name="rubric_file" accept=".xlsx">
+                        <div class="label-row">
+                            <label for="rubric_file">Upload Rubric File (.xlsx)</label>
+
+                            <a href="{{ url_for('static', filename='templates/rubric_template.xlsx') }}" 
+                            download 
+                            class="template-btn">
+                                <i class="fas fa-download"></i> Download Rubric Template
+                            </a>
+                        </div>
+
+                        <div class="file-card">
+                            <div class="file-icon excel">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+
+                            <div class="file-content">
+                                <input 
+                                    type="file" 
+                                    id="rubric_file" 
+                                    name="rubric_file" 
+                                    accept=".xlsx,.xls"
+                                    class="file-input"
+                                    required>
+                                <small>Please upload the completed rubric using the provided Excel template.</small>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="answer_scheme_file">Upload Answer Scheme PDF</label>
-                        <div class="upload-area">
-                            <i class="fas fa-file-alt" style="font-size: 2rem; color: #ccc; margin-bottom:10px;"></i><br>
-                            <input type="file" id="answer_scheme_file" name="answer_scheme_file" accept=".pdf">
+
+                        <div class="file-card">
+                            <div class="file-icon pdf">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+
+                            <div class="file-content">
+                                <input 
+                                    type="file" 
+                                    id="answer_scheme_file" 
+                                    name="answer_scheme_file" 
+                                    accept=".pdf"
+                                    class="file-input"
+                                    required>
+                                <small>Upload the model answer or reference answer scheme in PDF format.</small>
+                            </div>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-submit">Create Assignment</button>
+                    <button type="submit" class="generate-btn">
+                        <i class="fas fa-plus-circle"></i>
+                        Create Assignment
+                    </button>
                 </form>
             </div>
 

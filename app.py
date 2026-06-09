@@ -11,20 +11,24 @@ from werkzeug.utils import secure_filename
 from pypdf import PdfReader
 from sqlalchemy.exc import IntegrityError
 from model import db, Lecturer, Student, Assignment, Quiz, Question, QuizAttempt, AttemptAnswer, Submission, SubmissionCriterionScore
-from nlg_quiz import QuizGenerationService, clean_text, generate_full_quiz_data, extract_key_entities, filter_valid_concepts
+from nlg_quiz import QuizGenerationService, clean_text, generate_full_quiz_data, extract_key_entities, filter_valid_concepts, build_concept_pool
 from config import Config
-from datetime import datetime 
 from nlp_assignment import evaluate_submission
+from datetime import datetime, timezone, timedelta
+
+MALAYSIA_TZ = timezone(timedelta(hours=8))
+
+def malaysia_now():
+    return datetime.now(MALAYSIA_TZ).replace(tzinfo=None)
 
 # ----------------------------
 # INITIAL SETUP
 # ----------------------------
 app = Flask(__name__)
+quiz_service = QuizGenerationService()
 
-# Initial configurations
 app.config.from_object(Config)
 
-# File Upload Configuration
 UPLOAD_SCHEME_FOLDER = os.path.join("static", "uploads", "schemes")
 app.config["UPLOAD_SCHEME_FOLDER"] = UPLOAD_SCHEME_FOLDER
 os.makedirs(app.config["UPLOAD_SCHEME_FOLDER"], exist_ok=True)
@@ -41,7 +45,6 @@ UPLOAD_SUBMISSION_FOLDER = os.path.join("static", "uploads", "submissions")
 app.config["UPLOAD_SUBMISSION_FOLDER"] = UPLOAD_SUBMISSION_FOLDER
 os.makedirs(app.config["UPLOAD_SUBMISSION_FOLDER"], exist_ok=True)
 
-# Initialize Extensions
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -200,7 +203,7 @@ def lecturer_dashboard():
     # ----------------------------
     my_assignments = Assignment.query.filter_by(
         lecturer_id=current_user.lecturer_id
-    ).all()
+    ).order_by(Assignment.assignment_id.desc()).all()
     assignment_ids = [a.assignment_id for a in my_assignments]
 
     submissions = []
@@ -219,7 +222,6 @@ def lecturer_dashboard():
         if s.ai_status == "Evaluated"
     )
 
-    # Student assignment performance graph
     assignment_score_map = {}
     for s in submissions:
         if s.lecturer_final_score is not None:
@@ -235,18 +237,52 @@ def lecturer_dashboard():
 
     assignment_chart_labels = []
     assignment_chart_values = []
-
     for student_name, scores in assignment_score_map.items():
         if scores:
             assignment_chart_labels.append(student_name)
             assignment_chart_values.append(round(sum(scores) / len(scores), 2))
+
+    assignment_filter_options = []
+    assignment_filter_map = {}
+
+    for assignment in my_assignments:
+        labels = []
+        values = []
+
+        assignment_submissions = [
+            s for s in submissions
+            if s.assignment_id == assignment.assignment_id
+        ]
+
+        for s in assignment_submissions:
+            if s.lecturer_final_score is not None:
+                score = s.lecturer_final_score
+            elif s.ai_total_score is not None:
+                score = s.ai_total_score
+            else:
+                continue
+
+            student_obj = s.student
+            if student_obj:
+                labels.append(student_obj.name)
+                values.append(round(score, 2))
+
+        if labels:
+            assignment_filter_options.append({
+                "id": assignment.assignment_id,
+                "title": assignment.title
+            })
+            assignment_filter_map[str(assignment.assignment_id)] = {
+                "labels": labels,
+                "values": values
+            }
 
     # ----------------------------
     # Quiz data
     # ----------------------------
     my_quizzes = Quiz.query.filter_by(
         lecturer_id=current_user.lecturer_id
-    ).all()
+    ).order_by(Quiz.quiz_id.desc()).all()
 
     published_quizzes = sum(1 for q in my_quizzes if q.is_published)
 
@@ -263,7 +299,6 @@ def lecturer_dashboard():
         if valid_percents:
             avg_quiz_score = round(sum(valid_percents) / len(valid_percents), 2)
 
-    # Student quiz performance graph
     quiz_score_map = {}
     for a in attempts:
         if a.percent is None:
@@ -274,11 +309,38 @@ def lecturer_dashboard():
 
     quiz_chart_labels = []
     quiz_chart_values = []
-
     for student_name, scores in quiz_score_map.items():
         if scores:
             quiz_chart_labels.append(student_name)
             quiz_chart_values.append(round(sum(scores) / len(scores), 2))
+
+    quiz_filter_options = []
+    quiz_filter_map = {}
+
+    for quiz in my_quizzes:
+        labels = []
+        values = []
+
+        quiz_attempts = [a for a in attempts if a.quiz_id == quiz.quiz_id]
+
+        for a in quiz_attempts:
+            if a.percent is None:
+                continue
+
+            student_obj = Student.query.get(a.student_id)
+            if student_obj:
+                labels.append(student_obj.name)
+                values.append(round(a.percent, 2))
+
+        if labels:
+            quiz_filter_options.append({
+                "id": quiz.quiz_id,
+                "title": quiz.title
+            })
+            quiz_filter_map[str(quiz.quiz_id)] = {
+                "labels": labels,
+                "values": values
+            }
 
     return render_template(
         "lecturer_dashboard.html",
@@ -294,6 +356,10 @@ def lecturer_dashboard():
         assignment_chart_values=assignment_chart_values,
         quiz_chart_labels=quiz_chart_labels,
         quiz_chart_values=quiz_chart_values,
+        assignment_filter_options=assignment_filter_options,
+        assignment_filter_map=assignment_filter_map,
+        quiz_filter_options=quiz_filter_options,
+        quiz_filter_map=quiz_filter_map,
     )
 
 @app.route("/student/dashboard")
@@ -346,7 +412,6 @@ def student_dashboard():
         quiz_chart_labels.append(quiz_obj.title)
         quiz_chart_values.append(round(attempt.percent, 2))
 
-    # Stats
     total_assignments = len(my_submissions)
     completed_quizzes = len(my_attempts)
 
@@ -446,10 +511,21 @@ def quiz_management():
 
     for qz in my_quizzes:
         try:
-            qz.concepts_list = json.loads(qz.concepts) if getattr(qz, "concepts", None) else []
+            metadata = json.loads(qz.concepts) if getattr(qz, "concepts", None) else {}
+
+            if isinstance(metadata, dict):
+                qz.concepts_list = metadata.get("concepts", [])
+                qz.source_files = metadata.get("source_files", [])
+                qz.total_files = metadata.get("total_files", len(qz.source_files))
+            else:
+                qz.concepts_list = metadata
+                qz.source_files = []
+                qz.total_files = 0
+
         except Exception:
             qz.concepts_list = []
-        qz.question_count = len(qz.questions)
+            qz.source_files = []
+            qz.total_files = 0
 
     return render_template("quiz_management.html", quizzes=my_quizzes)
 
@@ -459,79 +535,141 @@ def upload_scheme():
     if not _require_lecturer():
         return redirect(url_for("login"))
 
-    file = request.files.get("pdf_file")
-    if not file or not file.filename.lower().endswith(".pdf"):
-        flash("Please upload a valid PDF file.")
+    quiz_title = (request.form.get("quiz_title") or "").strip()
+    files = request.files.getlist("pdf_files")
+
+    if not quiz_title:
+        flash("Please enter a quiz topic/title.")
         return redirect(url_for("quiz_management"))
 
-    safe_name = secure_filename(file.filename)
-    unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-    save_path = os.path.join(app.config["UPLOAD_SCHEME_FOLDER"], unique_name)
-    file.save(save_path)
+    if not files or len(files) == 0:
+        flash("Please upload at least one PDF file.")
+        return redirect(url_for("quiz_management"))
+
+    files = [f for f in files if f and f.filename]
+
+    if not files:
+        flash("Please upload at least one PDF file.")
+        return redirect(url_for("quiz_management"))
+
+    if len(files) > 3:
+        flash("You can upload a maximum of 3 PDF files only.")
+        return redirect(url_for("quiz_management"))
+
+    for file in files:
+        if not file.filename.lower().endswith(".pdf"):
+            flash("All uploaded files must be PDF files.")
+            return redirect(url_for("quiz_management"))
 
     try:
-        reader = PdfReader(save_path)
+        combined_texts = []
+        uploaded_names = []
 
-        texts = []
-        for i, page in enumerate(reader.pages):
-            t = page.extract_text() or ""
-            if i < 2:
-                continue
-            texts.append(t)
+        for file in files:
+            safe_name = secure_filename(file.filename)
+            uploaded_names.append(safe_name)
 
-        full_text = " ".join(texts).strip()
+            unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+            save_path = os.path.join(app.config["UPLOAD_SCHEME_FOLDER"], unique_name)
+            file.save(save_path)
+
+            reader = PdfReader(save_path)
+
+            texts = []
+            for i, page in enumerate(reader.pages):
+                t = page.extract_text() or ""
+
+                if i < 2:
+                    continue
+
+                texts.append(t)
+
+            pdf_text = " ".join(texts).strip()
+
+            print("PDF USED:", safe_name)
+            print("Extracted text length:", len(pdf_text))
+
+            if pdf_text:
+                combined_texts.append(pdf_text)
+
+        full_text = " ".join(combined_texts).strip()
+
+        print("TOTAL PDFs uploaded:", len(files))
+        print("PDF names:", uploaded_names)
+        print("Combined text length:", len(full_text))
 
         if not full_text:
-            flash("Could not extract text from this PDF (may be scanned). Upload a text-based PDF.")
+            flash("Could not extract text from the uploaded PDFs. They may be scanned images.")
             return redirect(url_for("quiz_management"))
 
         full_text = clean_text(full_text)
 
-        raw_concepts = extract_key_entities(full_text[:20000], top_k=20)
-        concepts = filter_valid_concepts(raw_concepts, limit=8)
+        try:
+            concepts = build_concept_pool(full_text)
+        except Exception:
+            concepts = []
 
-        if not concepts:
-            flash("No valid key concepts detected. Try uploading more complete notes.")
+        quiz_bundles = quiz_service.generate_quiz_from_text(
+            full_text,
+            max_questions=10
+        )
+
+        if not quiz_bundles:
+            flash("AI could not generate usable quiz questions from these PDFs.")
             return redirect(url_for("quiz_management"))
 
-        quiz_service = QuizGenerationService()
-        seen_questions = set()
-        seen_corrects = set()
+        quiz_metadata = {
+            "concepts": concepts,
+            "source_files": uploaded_names,
+            "total_files": len(uploaded_names)
+        }
 
         new_quiz = Quiz(
-            title=f"AI Quiz: {safe_name}",
+            title=quiz_title,
             lecturer_id=current_user.lecturer_id,
-            concepts=json.dumps(concepts),
+            concepts=json.dumps(quiz_metadata),
         )
+
         db.session.add(new_quiz)
         db.session.flush()
 
+        seen_questions = set()
+        seen_corrects = set()
         created = 0
 
-        for concept in concepts:
-            quiz_bundle = quiz_service.generate_question_bundle(
-                concept=concept,
-                full_text=full_text,
-                concept_pool=concepts
-            )
+        for quiz_bundle in quiz_bundles:
+            if created >= 10:
+                break
 
-            if not quiz_bundle:
+            question_key = " ".join((quiz_bundle.get("question") or "").lower().split())
+            correct_key = (quiz_bundle.get("correct") or "").strip().lower()
+
+            if not question_key or not correct_key:
                 continue
-
-            question_key = " ".join(quiz_bundle["question"].lower().split())
-            correct_key = quiz_bundle["correct"].strip().lower()
 
             if question_key in seen_questions:
                 continue
+
             if correct_key in seen_corrects:
+                continue
+
+            distractors = quiz_bundle.get("distractors", [])
+
+            if len(distractors) < 3:
+                continue
+
+            opts = [
+                (quiz_bundle["correct"] or "").strip().lower(),
+                (distractors[0] or "").strip().lower(),
+                (distractors[1] or "").strip().lower(),
+                (distractors[2] or "").strip().lower(),
+            ]
+
+            if len(set(opts)) < 4:
                 continue
 
             seen_questions.add(question_key)
             seen_corrects.add(correct_key)
-
-            distractors = quiz_bundle.get("distractors", [])
-            if len(distractors) < 3:
-                continue
 
             new_question = Question(
                 quiz_id=new_quiz.quiz_id,
@@ -540,25 +678,31 @@ def upload_scheme():
                 distractor_1=distractors[0],
                 distractor_2=distractors[1],
                 distractor_3=distractors[2],
-                explanation=quiz_bundle["explanation"],
+                explanation=quiz_bundle.get("explanation", ""),
             )
+
             db.session.add(new_question)
             created += 1
 
         if created == 0:
             db.session.rollback()
-            flash("AI could not generate usable quiz questions from this PDF.")
+            flash("AI could not generate usable quiz questions from these PDFs.")
             return redirect(url_for("quiz_management"))
 
         db.session.commit()
-        flash(f"Success! AI generated {created} questions from {safe_name}.")
+
+        flash(
+            f"Success! AI generated {created} questions for '{quiz_title}' "
+            f"from {len(files)} PDF file(s)."
+        )
+
+        return redirect(url_for("review_quiz", quiz_id=new_quiz.quiz_id))
 
     except Exception as e:
         db.session.rollback()
         flash(f"AI Error: {str(e)}")
-
-    return redirect(url_for("quiz_management"))
-
+        return redirect(url_for("quiz_management"))
+    
 @app.route("/review_quiz/<int:quiz_id>")
 @login_required
 def review_quiz(quiz_id):
@@ -570,7 +714,27 @@ def review_quiz(quiz_id):
         lecturer_id=current_user.lecturer_id
     ).first_or_404()
 
-    return render_template("review_quiz.html", quiz=quiz)
+    source_files = []
+    concepts_list = []
+
+    try:
+        metadata = json.loads(quiz.concepts) if quiz.concepts else {}
+
+        if isinstance(metadata, dict):
+            source_files = metadata.get("source_files", [])
+            concepts_list = metadata.get("concepts", [])
+        else:
+            concepts_list = metadata
+    except Exception:
+        source_files = []
+        concepts_list = []
+
+    return render_template(
+        "review_quiz.html",
+        quiz=quiz,
+        source_files=source_files,
+        concepts_list=concepts_list
+    )
 
 @app.route("/quiz/<int:quiz_id>/save_review", methods=["POST"])
 @login_required
@@ -791,7 +955,6 @@ def student_submit_quiz(quiz_id):
     total = len(quiz.questions)
     score = 0
 
-    # First, calculate answers in memory
     answer_rows = []
 
     for q in quiz.questions:
@@ -819,7 +982,7 @@ def student_submit_quiz(quiz_id):
 
     try:
         db.session.add(attempt)
-        db.session.flush()  # get attempt_id
+        db.session.flush() 
 
         for row in answer_rows:
             db.session.add(AttemptAnswer(
@@ -843,7 +1006,6 @@ def student_submit_quiz(quiz_id):
         return redirect(url_for("student_take_quiz", quiz_id=quiz.quiz_id))
 
     return redirect(url_for("student_review_quiz", quiz_id=quiz.quiz_id))
-
 
 @app.route("/student/quiz/<int:quiz_id>/review")
 @login_required
@@ -952,7 +1114,7 @@ def assignment_management():
 
     assignments = Assignment.query.filter_by(
         lecturer_id=current_user.lecturer_id
-    ).order_by(Assignment.due_date.asc()).all()
+    ).order_by(Assignment.assignment_id.desc()).all()
 
     return render_template("assignment_management.html", assignments=assignments)
 
@@ -1000,7 +1162,7 @@ def student_assignments():
             flash("Assignment not found.")
             return redirect(url_for("student_assignments"))
 
-        if assignment.due_date and datetime.utcnow() > assignment.due_date:
+        if assignment.due_date and malaysia_now() > assignment.due_date:
             flash("Submission deadline has passed.")
             return redirect(url_for("student_assignments"))
 
@@ -1026,7 +1188,7 @@ def student_assignments():
 
         if existing_submission:
             existing_submission.file_path = file_path
-            existing_submission.submitted_at = datetime.utcnow()
+            existing_submission.submitted_at = malaysia_now()
             flash("Submission updated successfully.")
         else:
             new_submission = Submission(
@@ -1042,7 +1204,7 @@ def student_assignments():
 
     assignments = Assignment.query.filter_by(
         lecturer_id=current_user.lecturer_id
-    ).order_by(Assignment.due_date.asc()).all()
+    ).order_by(Assignment.assignment_id.desc()).all()
 
     all_submissions = Submission.query.filter_by(
         student_id=current_user.student_id
@@ -1050,7 +1212,6 @@ def student_assignments():
 
     submission_map = {s.assignment_id: s for s in all_submissions}
 
-    # Parse AI result JSON for criterion-level feedback
     ai_result_map = {}
     for sub in all_submissions:
         parsed_result = None
@@ -1144,7 +1305,6 @@ def evaluate_submission_route(submission_id):
                 weight=row.get("weight", 0.0),
                 max_scale=row.get("max_scale", 0.0),
 
-                # Mapping new evaluator fields into existing DB columns
                 semantic_similarity=row.get("best_reference_similarity", 0.0),
                 keyword_coverage=row.get("optional_term_coverage", 0.0),
                 structure_score=row.get("breadth_score", 0.0),
@@ -1186,74 +1346,51 @@ def evaluate_submission_route(submission_id):
 
     return redirect(url_for("view_submissions", assignment_id=assignment.assignment_id))
 
+import json
+
 @app.route("/submission/<int:submission_id>/breakdown", methods=["GET", "POST"])
 @login_required
 def submission_breakdown(submission_id):
-    if not _require_lecturer():
-        return redirect(url_for("login"))
-
     submission = Submission.query.get_or_404(submission_id)
-    assignment = Assignment.query.filter_by(
-        assignment_id=submission.assignment_id,
-        lecturer_id=current_user.lecturer_id
-    ).first_or_404()
+    assignment = Assignment.query.get_or_404(submission.assignment_id)
 
     if request.method == "POST":
-        final_score_raw = (request.form.get("lecturer_final_score") or "").strip()
-        lecturer_feedback = (request.form.get("lecturer_feedback") or "").strip()
         action = request.form.get("action")
+        score_val = request.form.get("lecturer_final_score")
+        feedback_val = request.form.get("lecturer_feedback")
 
-        try:
-            final_score = float(final_score_raw) if final_score_raw else None
-        except ValueError:
-            flash("Final score must be a valid number.")
-            return redirect(url_for("submission_breakdown", submission_id=submission.submission_id))
+        submission.lecturer_final_score = float(score_val) if score_val else None
+        submission.lecturer_feedback = feedback_val
 
-        if final_score is not None and (final_score < 0 or final_score > 100):
-            flash("Final score must be between 0 and 100.")
-            return redirect(url_for("submission_breakdown", submission_id=submission.submission_id))
-
-        submission.lecturer_final_score = final_score
-        submission.lecturer_feedback = lecturer_feedback
-
-        if action == "save":
-            db.session.commit()
-            flash("Lecturer review saved successfully.")
-
-        elif action == "endorse":
-            if final_score is None:
-                flash("Please enter a final score before endorsement.")
-                return redirect(url_for("submission_breakdown", submission_id=submission.submission_id))
-
+        if action == "endorse":
             submission.is_mark_released = True
-            submission.endorsed_at = datetime.utcnow()
-            db.session.commit()
-            flash("Mark endorsed and released to student.")
-
+            flash("Submission endorsed and released.")
         elif action == "unrelease":
             submission.is_mark_released = False
-            submission.endorsed_at = None
-            db.session.commit()
-            flash("Mark has been hidden from student.")
+            flash("Submission hidden from student.")
+        else:
+            flash("Review saved.")
 
+        db.session.commit()
         return redirect(url_for("submission_breakdown", submission_id=submission.submission_id))
 
-    scores = SubmissionCriterionScore.query.filter_by(
-        submission_id=submission.submission_id
-    ).all()
-    
-    ai_result = {}
-    try:
-        ai_result = json.loads(submission.ai_result_json) if submission.ai_result_json else {}
-    except Exception:
-        ai_result = {}
+    ai_result = None
+    scores = []
+
+    if submission.ai_result_json:
+        try:
+            ai_result = json.loads(submission.ai_result_json)
+            scores = ai_result.get("criteria_results", [])
+        except Exception:
+            ai_result = None
+            scores = []
 
     return render_template(
         "submission_breakdown.html",
         submission=submission,
         assignment=assignment,
-        scores=scores,
         ai_result=ai_result,
+        scores=scores
     )
 
 @app.route("/student/submission/<int:assignment_id>/result")

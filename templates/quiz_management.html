@@ -184,6 +184,151 @@
             font-size: 0.78rem;
             font-weight: 600;
         }
+
+        .upload-card {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            border-top: 4px solid var(--usm-purple);
+            box-shadow: 0 8px 24px rgba(90, 45, 129, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .upload-header h2 {
+            margin: 0 0 8px;
+            color: var(--usm-purple);
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .upload-header h2 i {
+            margin-right: 8px;
+        }
+
+        .upload-header p {
+            margin: 0 0 24px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #222;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--usm-purple);
+            box-shadow: 0 0 0 3px rgba(90, 45, 129, 0.12);
+        }
+
+        .file-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .file-card:hover {
+            border-color: #d6c4e8;
+            background: #fcf9ff;
+        }
+
+        .file-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.55rem;
+            flex-shrink: 0;
+        }
+
+        .file-icon.pdf {
+            background: #fdecec;
+            color: #dc3545;
+        }
+
+        .file-content {
+            width: 100%;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: var(--usm-purple);
+            box-shadow: 0 0 0 3px rgba(90, 45, 129, 0.12);
+        }
+
+        .file-content small {
+            display: block;
+            margin-top: 7px;
+            color: #666;
+            font-size: 0.83rem;
+        }
+
+        .generate-btn {
+            margin-top: 6px;
+            padding: 13px 24px;
+            background: var(--usm-purple);
+            color: #fff;
+            border: none;
+            border-radius: 11px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            box-shadow: 0 8px 18px rgba(90, 45, 129, 0.24);
+            transition: all 0.25s ease;
+        }
+
+        .generate-btn:hover {
+            background: #482468;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(90, 45, 129, 0.32);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        
     </style>
 </head>
 
@@ -208,9 +353,6 @@
             <button id="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <div>
                 <h1 style="margin: 0; color: #333;">Quiz Management</h1>
-                <p style="margin: 6px 0 0; color:#666;">
-                    Generate quizzes automatically using the <b>T5 NLG Engine</b> from your lecture notes (PDF).
-                </p>
             </div>
         </div>
 
@@ -225,20 +367,80 @@
               {% endif %}
             {% endwith %}
 
-            <div class="card">
-                <h3 style="margin-top:0; color:var(--usm-purple);"><i class="fas fa-file-pdf"></i> Upload Notes (PDF)</h3>
-                <p style="margin-top:6px; color:#666;">Upload lecture notes to generate a draft quiz for lecturer endorsement.</p>
+            <div class="upload-card">
+                <div class="upload-header">
+                    <div>
+                        <h2><i class="fas fa-wand-magic-sparkles"></i> Generate AI Quiz</h2>
+                    </div>
+                </div>
 
                 <form action="{{ url_for('upload_scheme') }}" method="POST" enctype="multipart/form-data">
-                    <div class="upload-area">
-                        <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #ccc; margin-bottom:10px;"></i><br>
-                        <input type="file" name="pdf_file" accept=".pdf" required>
+                    <div class="form-group">
+                        <label for="quiz_title">Quiz Title</label>
+                        <input 
+                            type="text"
+                            id="quiz_title"
+                            name="quiz_title"
+                            class="form-control"
+                            placeholder="Example: Chapter 5 - Marks & Channels"
+                            required>
                     </div>
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-brain"></i> Generate Quiz Questions (NLG)
+
+                    <div class="form-group">
+                        <label>Upload PDF Files</label>
+
+                        <div class="file-card">
+                            <div class="file-icon pdf">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="file-content">
+                                <input 
+                                    type="file"
+                                    name="pdf_files"
+                                    accept=".pdf"
+                                    class="file-input"
+                                    required>
+                                <small>PDF File 1 is required.</small>
+                            </div>
+                        </div>
+
+                        <div class="file-card" style="margin-top:12px;">
+                            <div class="file-icon pdf">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="file-content">
+                                <input 
+                                    type="file"
+                                    name="pdf_files"
+                                    accept=".pdf"
+                                    class="file-input">
+                                <small>PDF File 2 is optional.</small>
+                            </div>
+                        </div>
+
+                        <div class="file-card" style="margin-top:12px;">
+                            <div class="file-icon pdf">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="file-content">
+                                <input 
+                                    type="file"
+                                    name="pdf_files"
+                                    accept=".pdf"
+                                    class="file-input">
+                                <small>PDF File 3 is optional.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn">
+                        <i class="fas fa-magic"></i>
+                        Generate Quiz
                     </button>
                 </form>
             </div>
+
+
 
             <div class="card">
                 <h3 style="margin-top:0;">Review & Endorse Quizzes ({{ quizzes|length }})</h3>
@@ -260,7 +462,7 @@
 
                             <td>
                                 {% if quiz.concepts_list is defined and quiz.concepts_list and quiz.concepts_list|length > 0 %}
-                                    {% for c in quiz.concepts_list[:5] %}
+                                    {% for c in quiz.concepts_list[:10] %}
                                         <span class="tag">{{ c }}</span>
                                     {% endfor %}
                                 {% else %}
