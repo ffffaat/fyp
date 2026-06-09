@@ -147,8 +147,37 @@ The quiz generation process includes:
 
 ## Installation
 
-### 1. Clone the Repository
+1. Clone the Repository
+git clone https://github.com/ffffaat/fyp.git
+cd fyp
+2. Create a Virtual Environment
+python -m venv venv
 
-```bash
-git clone https://github.com/your-username/your-repository-name.git
-cd your-repository-name
+Activate the virtual environment.
+
+For Windows:
+
+venv\Scripts\activate
+
+For macOS/Linux:
+
+source venv/bin/activate
+3. Install Dependencies
+pip install -r requirements.txt
+4. Set Up PostgreSQL Database
+
+Create a PostgreSQL database and update the database configuration in the project.
+
+Example environment configuration:
+
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=localhost
+DB_PORT=5432
+5. Run the Application
+python app.py
+
+Then open the system in your browser:
+
+http://localhost:5000
